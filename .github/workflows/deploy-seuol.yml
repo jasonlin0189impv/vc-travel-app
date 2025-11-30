@@ -45,6 +45,7 @@ jobs:
           VITE_AUTH_PIN: ${{ secrets.VITE_AUTH_PIN }}
           VITE_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_GOOGLE_FORM_ACTION_URL }}
           VITE_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_CSV_URL }}
+          VITE_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_PLAN_CSV_URL }}
 
       # 4. 部署到 GitHub Pages
       - name: Deploy

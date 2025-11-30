@@ -63,10 +63,7 @@ const FORM_ENTRY_IDS = {
 const DEFAULT_SHEET_CSV_URL = import.meta.env.VITE_GOOGLE_SHEET_CSV_URL || "";
 
 // 4. 行程表 CSV 連結 (讀取行程用)
-//    📝 部署說明：請在 Secrets 中設定 VITE_ITINERARY_SHEET_CSV_URL
-//    目前先留空，會使用預設範例資料
-// const ITINERARY_SHEET_CSV_URL = import.meta.env.VITE_ITINERARY_SHEET_CSV_URL || ""; 
-const ITINERARY_SHEET_CSV_URL = "";
+const ITINERARY_SHEET_CSV_URL = import.meta.env.VITE_GOOGLE_SHEET_PLAN_CSV_URL || "";
 
 // 5. 圖示對照表 (將 CSV 文字轉換為圖示)
 const ICON_MAP = {
