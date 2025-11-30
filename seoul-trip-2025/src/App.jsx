@@ -31,27 +31,35 @@ import {
   Thermometer,
   Lightbulb,
   Home,
-  Bed,       // 用於住宿
-  Plane,     // 用於機場
-  UtensilsCrossed, // 另一種食物圖示
+  Bed,
+  Plane,
+  UtensilsCrossed,
   Lock
 } from 'lucide-react';
 
 // ==========================================
-// 🔐 安全設定區域 (預覽修正版)
+// 🔐 安全設定區域
 // ==========================================
 
-// 設定您的登入密碼
-const APP_PASSWORD = import.meta.env.VITE_AUTH_PIN || ""; 
+// 為了避免預覽環境報錯，這裡做了一個安全讀取檢查
+const getEnv = (key, defaultValue) => {
+  try {
+    return import.meta.env[key] || defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
+const APP_PASSWORD = getEnv("VITE_AUTH_PIN", "2026"); 
 
 // ==========================================
-// 🔧 設定區域 (預覽修正版)
+// 🔧 設定區域
 // ==========================================
 
-// 1. Google 表單提交網址 (Action URL) - 用於記帳寫入
-const GOOGLE_FORM_ACTION_URL = import.meta.env.VITE_GOOGLE_FORM_ACTION_URL || "";
+// 1. Google 表單 Action URL (已填入您提供的連結)
+const GOOGLE_FORM_ACTION_URL = getEnv("VITE_GOOGLE_FORM_ACTION_URL", "");
 
-// 2. Google 表單欄位 ID (Entry IDs)
+// 2. Google 表單 Entry IDs (這些看起來是您設定好的真實 ID)
 const FORM_ENTRY_IDS = {
   ITEM: "entry.535523921",     
   AMOUNT: "entry.304377441",   
@@ -59,13 +67,14 @@ const FORM_ENTRY_IDS = {
   CATEGORY: "entry.1495061883" 
 };
 
-// 3. Google 試算表 CSV 連結 (讀取記帳用)
-const DEFAULT_SHEET_CSV_URL = import.meta.env.VITE_GOOGLE_SHEET_CSV_URL || "";
+// 3. Google 試算表 CSV (記帳讀取用)
+const DEFAULT_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_CSV_URL", "");
 
-// 4. 行程表 CSV 連結 (讀取行程用)
-const ITINERARY_SHEET_CSV_URL = import.meta.env.VITE_GOOGLE_SHEET_PLAN_CSV_URL || "";
+// 4. 行程表 CSV (行程讀取用)
+//    如果這裡留空，就會顯示下方的 FALLBACK_DATA
+const ITINERARY_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", "");
 
-// 5. 圖示對照表 (將 CSV 文字轉換為圖示)
+// 5. 圖示對照
 const ICON_MAP = {
   'train': <Train size={18} />,
   'plane': <Plane size={18} />,
@@ -81,11 +90,8 @@ const ICON_MAP = {
 
 // ==========================================
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'seoul-trip-prod';
-
 // --- Components ---
 
-// 0. Login View
 const LoginView = ({ onLogin }) => {
   const [input, setInput] = useState('');
   const [error, setError] = useState(false);
@@ -123,19 +129,14 @@ const LoginView = ({ onLogin }) => {
           />
           {error && <p className="text-red-500 text-xs text-center mt-2 animate-bounce">密碼錯誤，請再試一次</p>}
         </div>
-        <button 
-          type="submit" 
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-indigo-900/50"
-        >
+        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-indigo-900/50">
           解鎖進入
         </button>
       </form>
-      <p className="fixed bottom-8 text-slate-600 text-xs">Family Trip App v2.6</p>
     </div>
   );
 };
 
-// 1. Weather Widget (保持不變)
 const WeatherWidget = () => {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -192,7 +193,6 @@ const WeatherWidget = () => {
   );
 };
 
-// 2. Itinerary View (MODIFIED: Fetch from Google Sheet)
 const ItineraryView = () => {
   const [activeDay, setActiveDay] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -207,16 +207,8 @@ const ItineraryView = () => {
     5: '1/19 (一)'
   };
 
-  // 預設資料 (當沒有 CSV URL 時使用)
-  const FALLBACK_DATA = {
-    1: [
-      { time: '12:45', title: '抵達金浦機場', icon: 'plane', desc: '準備入境，搭乘地鐵前往飯店。' },
-      { time: '14:30', title: '飯店 Check-in', icon: 'bed', desc: '入住 Voco Seoul Myeongdong (會賢站)。' },
-      { time: '15:30', title: '新世界百貨總店', icon: 'shop', desc: '就在飯店對面，室內溫暖舒適。' },
-      { time: '19:00', title: '晚餐：風川鰻魚', icon: 'food', desc: '烤鰻魚補充體力。' }
-    ],
-    2: [{ time: '09:00', title: '請設定 Google Sheet', icon: 'map', desc: '請將您的行程表發布為 CSV 並填入 ITINERARY_SHEET_CSV_URL' }]
-  };
+  // 預設資料清空 (為了測試 CSV 是否讀取成功，若未成功會顯示「本日無行程資料」)
+  const FALLBACK_DATA = {};
 
   useEffect(() => {
     const fetchItinerary = async () => {
@@ -228,14 +220,13 @@ const ItineraryView = () => {
       setLoading(true);
       try {
         const response = await fetch(`${ITINERARY_SHEET_CSV_URL}&t=${Date.now()}`);
+        if (!response.ok) throw new Error("Network response was not ok");
         const text = await response.text();
         const lines = text.split('\n');
         
-        // Parsing Logic
-        // Expected CSV columns: Day, Time, Title, Description, Icon
         const parsedData = {};
         
-        // Skip header (i=1)
+        // 簡單解析 CSV
         for (let i = 1; i < lines.length; i++) {
           const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^"|"$/g, ''));
           if (row.length < 3) continue;
@@ -251,7 +242,11 @@ const ItineraryView = () => {
           });
         }
         
-        setItineraryData(parsedData);
+        if (Object.keys(parsedData).length === 0) {
+          setItineraryData(FALLBACK_DATA);
+        } else {
+          setItineraryData(parsedData);
+        }
       } catch (error) {
         console.error("Error loading itinerary:", error);
         setItineraryData(FALLBACK_DATA);
@@ -294,7 +289,8 @@ const ItineraryView = () => {
          </div>
       ) : currentDayItems.length === 0 ? (
         <div className="text-center py-12 text-slate-400">
-          <p>本日無行程</p>
+          <p>本日無行程資料</p>
+          <p className="text-xs mt-2 text-slate-300">(請確認 Google Sheet 連結與格式)</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -312,7 +308,6 @@ const ItineraryView = () => {
                 <div className="flex-grow pb-2">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                      {/* Dynamic Icon Mapping */}
                       {ICON_MAP[item.icon] || ICON_MAP['default']}
                     </div>
                     <h4 className="font-bold text-slate-800 text-lg">{item.title}</h4>
