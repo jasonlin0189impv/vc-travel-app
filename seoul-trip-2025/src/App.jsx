@@ -56,10 +56,13 @@ const APP_PASSWORD = getEnv("VITE_AUTH_PIN", "2026");
 // 🔧 設定區域
 // ==========================================
 
-// 1. Google 表單 Action URL (已填入您提供的連結)
-const GOOGLE_FORM_ACTION_URL = getEnv("VITE_GOOGLE_FORM_ACTION_URL", "");
+// 1. Google 表單 Action URL (已修正為正確的 Form ID)
+const GOOGLE_FORM_ACTION_URL = getEnv(
+  "VITE_GOOGLE_FORM_ACTION_URL", 
+  ""
+);
 
-// 2. Google 表單 Entry IDs (這些看起來是您設定好的真實 ID)
+// 2. Google 表單 Entry IDs (確認與您的 pre-filled link 一致)
 const FORM_ENTRY_IDS = {
   ITEM: "entry.535523921",     
   AMOUNT: "entry.304377441",   
@@ -68,11 +71,16 @@ const FORM_ENTRY_IDS = {
 };
 
 // 3. Google 試算表 CSV (記帳讀取用)
-const DEFAULT_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_CSV_URL", "");
+const DEFAULT_SHEET_CSV_URL = getEnv(
+  "VITE_GOOGLE_SHEET_CSV_URL",
+  ""
+);
 
-// 4. 行程表 CSV (行程讀取用)
-//    如果這裡留空，就會顯示下方的 FALLBACK_DATA
-const ITINERARY_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", "");
+// 4. 行程表 CSV (行程讀取用 - 已更新為您提供的連結)
+const ITINERARY_SHEET_CSV_URL = getEnv(
+  "VITE_GOOGLE_SHEET_PLAN_CSV_URL", 
+  ""
+);
 
 // 5. 圖示對照
 const ICON_MAP = {
@@ -86,6 +94,53 @@ const ICON_MAP = {
   'bed': <Bed size={18} />,
   'home': <Home size={18} />,
   'default': <MapPin size={18} />
+};
+
+// --- Helper: Robust CSV Parser ---
+// 這個解析器可以處理欄位內有換行符號的情況
+const smartParseCSV = (csvText) => {
+  const rows = [];
+  let currentRow = [];
+  let currentCell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // 處理轉義引號 ("") -> (")
+        currentCell += '"';
+        i++; 
+      } else {
+        // 切換引號狀態
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // 欄位結束
+      currentRow.push(currentCell.trim());
+      currentCell = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      // 行結束
+      if (char === '\r' && nextChar === '\n') i++; // 處理 Windows 換行
+      
+      currentRow.push(currentCell.trim());
+      if (currentRow.some(cell => cell !== '')) { // 忽略空行
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentCell = '';
+    } else {
+      currentCell += char;
+    }
+  }
+  // 處理最後一行
+  if (currentCell || currentRow.length > 0) {
+    currentRow.push(currentCell.trim());
+    rows.push(currentRow);
+  }
+  return rows;
 };
 
 // ==========================================
@@ -207,7 +262,7 @@ const ItineraryView = () => {
     5: '1/19 (一)'
   };
 
-  // 預設資料清空 (為了測試 CSV 是否讀取成功，若未成功會顯示「本日無行程資料」)
+  // 預設資料清空
   const FALLBACK_DATA = {};
 
   useEffect(() => {
@@ -222,23 +277,44 @@ const ItineraryView = () => {
         const response = await fetch(`${ITINERARY_SHEET_CSV_URL}&t=${Date.now()}`);
         if (!response.ok) throw new Error("Network response was not ok");
         const text = await response.text();
-        const lines = text.split('\n');
         
+        // 使用新的解析器處理
+        const rows = smartParseCSV(text);
+        
+        if (rows.length < 2) {
+          setItineraryData(FALLBACK_DATA);
+          return;
+        }
+
+        const headers = rows[0];
+        const getIndex = (keywords) => headers.findIndex(h => keywords.some(k => h.toLowerCase().includes(k.toLowerCase())));
+        
+        const idxDay = getIndex(['day', '天', '日期']);
+        const idxTime = getIndex(['time', '時間']);
+        const idxTitle = getIndex(['title', '標題', '名稱', '活動', '項目']);
+        const idxDesc = getIndex(['desc', '描述', '說明', '備註']);
+        const idxIcon = getIndex(['icon', '圖示']);
+
         const parsedData = {};
         
-        // 簡單解析 CSV
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^"|"$/g, ''));
-          if (row.length < 3) continue;
+        // 從第 1 列開始 (跳過 header)
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          // 忽略空行或欄位不足的行
+          if (row.length < 2) continue;
           
-          const day = parseInt(row[0]);
+          const dayStr = idxDay > -1 ? row[idxDay] : row[0];
+          const day = parseInt(dayStr);
+          
+          if (isNaN(day)) continue;
+          
           if (!parsedData[day]) parsedData[day] = [];
           
           parsedData[day].push({
-            time: row[1],
-            title: row[2],
-            desc: row[3],
-            icon: row[4] ? row[4].toLowerCase() : 'default'
+            time: idxTime > -1 ? row[idxTime] : row[1],
+            title: idxTitle > -1 ? row[idxTitle] : row[2],
+            desc: idxDesc > -1 ? row[idxDesc] : row[3],
+            icon: idxIcon > -1 ? (row[idxIcon] || 'default').toLowerCase() : (row[4] || 'default').toLowerCase()
           });
         }
         
@@ -339,7 +415,7 @@ const ItineraryView = () => {
   );
 };
 
-// 3. Expense View (保持不變，僅引用設定)
+// 3. Expense View
 const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate }) => {
   const [viewMode, setViewMode] = useState('list');
   const [showFormModal, setShowFormModal] = useState(false);
