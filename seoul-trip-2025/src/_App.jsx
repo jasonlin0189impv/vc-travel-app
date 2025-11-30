@@ -31,56 +31,34 @@ import {
   Thermometer,
   Lightbulb,
   Home,
-  Bed,       // 用於住宿
-  Plane,     // 用於機場
-  UtensilsCrossed, // 另一種食物圖示
-  Lock
+  Lock,
+  Plane
 } from 'lucide-react';
 
 // ==========================================
-// 🔐 安全設定區域 (預覽修正版)
+// 🔐 安全設定區域
 // ==========================================
 
-// 設定您的登入密碼
+// 設定您的登入密碼 (建議用簡單好記的，例如出發日期或年份)
 const APP_PASSWORD = import.meta.env.VITE_AUTH_PIN || ""; 
 
 // ==========================================
-// 🔧 設定區域 (預覽修正版)
+// 🔧 設定區域
 // ==========================================
 
-// 1. Google 表單提交網址 (Action URL) - 用於記帳寫入
+// 1. Google 表單提交網址 (Action URL)
 const GOOGLE_FORM_ACTION_URL = import.meta.env.VITE_GOOGLE_FORM_ACTION_URL || "";
 
 // 2. Google 表單欄位 ID (Entry IDs)
 const FORM_ENTRY_IDS = {
-  ITEM: "entry.535523921",     
-  AMOUNT: "entry.304377441",   
-  PAYER: "entry.1459657419",    
-  CATEGORY: "entry.1495061883" 
+  ITEM: "entry.535523921",     // 項目
+  AMOUNT: "entry.304377441",   // 金額
+  PAYER: "entry.1459657419",    // 付款人
+  CATEGORY: "entry.1495061883" // 分類
 };
 
-// 3. Google 試算表 CSV 連結 (讀取記帳用)
+// 3. Google 試算表 CSV 連結 (讀取用)
 const DEFAULT_SHEET_CSV_URL = import.meta.env.VITE_GOOGLE_SHEET_CSV_URL || "";
-
-// 4. 行程表 CSV 連結 (讀取行程用)
-//    📝 部署說明：請在 Secrets 中設定 VITE_ITINERARY_SHEET_CSV_URL
-//    目前先留空，會使用預設範例資料
-// const ITINERARY_SHEET_CSV_URL = import.meta.env.VITE_ITINERARY_SHEET_CSV_URL || ""; 
-const ITINERARY_SHEET_CSV_URL = "";
-
-// 5. 圖示對照表 (將 CSV 文字轉換為圖示)
-const ICON_MAP = {
-  'train': <Train size={18} />,
-  'plane': <Plane size={18} />,
-  'map': <MapPin size={18} />,
-  'food': <Utensils size={18} />,
-  'shop': <ShoppingBag size={18} />,
-  'coffee': <Coffee size={18} />,
-  'camera': <Camera size={18} />,
-  'bed': <Bed size={18} />,
-  'home': <Home size={18} />,
-  'default': <MapPin size={18} />
-};
 
 // ==========================================
 
@@ -88,7 +66,7 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'seoul-trip-prod';
 
 // --- Components ---
 
-// 0. Login View
+// 0. Login View (新增的登入畫面)
 const LoginView = ({ onLogin }) => {
   const [input, setInput] = useState('');
   const [error, setError] = useState(false);
@@ -108,13 +86,13 @@ const LoginView = ({ onLogin }) => {
       <div className="w-20 h-20 bg-indigo-500 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/30">
         <Plane size={40} className="text-white" />
       </div>
-      <h1 className="text-2xl font-bold mb-2">首爾之旅 2026</h1>
+      <h1 className="text-2xl font-bold mb-2">首爾之旅 2025</h1>
       <p className="text-slate-400 text-sm mb-8">請輸入密碼以查看行程</p>
 
       <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-4">
         <div>
           <input 
-            type="tel"
+            type="tel" // 使用 tel 鍵盤方便手機輸入數字
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
@@ -133,12 +111,12 @@ const LoginView = ({ onLogin }) => {
           解鎖進入
         </button>
       </form>
-      <p className="fixed bottom-8 text-slate-600 text-xs">Family Trip App v2.6</p>
+      <p className="fixed bottom-8 text-slate-600 text-xs">Family Trip App v2.5</p>
     </div>
   );
 };
 
-// 1. Weather Widget (保持不變)
+// 1. Weather Widget
 const WeatherWidget = () => {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +125,7 @@ const WeatherWidget = () => {
     const fetchWeather = async () => {
       try {
         const response = await fetch(
-          'https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FSeoul&forecast_days=1'
+          'https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&forecast_days=1'
         );
         const data = await response.json();
         setWeather(data);
@@ -195,12 +173,10 @@ const WeatherWidget = () => {
   );
 };
 
-// 2. Itinerary View (MODIFIED: Fetch from Google Sheet)
+// 2. Itinerary View
 const ItineraryView = () => {
   const [activeDay, setActiveDay] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [itineraryData, setItineraryData] = useState({});
-  const [loading, setLoading] = useState(false);
 
   const dates = {
     1: '1/15 (四)',
@@ -210,68 +186,47 @@ const ItineraryView = () => {
     5: '1/19 (一)'
   };
 
-  // 預設資料 (當沒有 CSV URL 時使用)
-  const FALLBACK_DATA = {
+  const itineraryData = {
     1: [
-      { time: '12:45', title: '抵達金浦機場', icon: 'plane', desc: '準備入境，搭乘地鐵前往飯店。' },
-      { time: '14:30', title: '飯店 Check-in', icon: 'bed', desc: '入住 Voco Seoul Myeongdong (會賢站)。' },
-      { time: '15:30', title: '新世界百貨總店', icon: 'shop', desc: '就在飯店對面，室內溫暖舒適。' },
-      { time: '19:00', title: '晚餐：風川鰻魚', icon: 'food', desc: '烤鰻魚補充體力。' }
+      { time: '12:45', title: '抵達金浦機場', icon: <Train size={18} />, desc: '準備入境，搭乘地鐵前往飯店。' },
+      { time: '14:30', title: '飯店 Check-in', icon: <MapPin size={18} />, desc: '入住 Voco Seoul Myeongdong (會賢站)。' },
+      { time: '15:30', title: '新世界百貨總店', icon: <ShoppingBag size={18} />, desc: '📍 就在飯店對面，室內溫暖舒適，長輩逛得開心。\n\n🛍️ 主攻品牌：\n- National Geographic\n- The North Face (White Label)' },
+      { time: '17:00', title: '明洞商圈購物', icon: <ShoppingBag size={18} />, desc: '💄 Olive Young 旗艦店：一次買齊保養品。\n\n👢 Rockfish Weatherwear (明洞店)：位於明洞8街34-1。不用去聖水洞排隊！\n\n🧸 Wacky Willy (明洞旗艦店)：位於明洞8Na街6。' },
+      { time: '19:00', title: '晚餐：風川鰻魚', icon: <Utensils size={18} />, desc: '烤鰻魚補充體力，享受第一餐美食。' },
+      { time: '21:00', title: '回飯店休息', icon: <Coffee size={18} />, desc: '第一天早點休息，儲備體力。' }
     ],
-    2: [{ time: '09:00', title: '請設定 Google Sheet', icon: 'map', desc: '請將您的行程表發布為 CSV 並填入 ITINERARY_SHEET_CSV_URL' }]
+    2: [
+      { time: '09:00', title: '早餐：Artist Bakery', icon: <Coffee size={18} />, desc: '📍 安國站人氣麵包店。\n\n⚠️ 建議早起前往排隊，若人太多可直接外帶或換備案。' },
+      { time: '10:30', title: '景福宮', icon: <MapPin size={18} />, desc: '觀看守門將換崗儀式 (通常10:00或14:00)。\n\n❄️ 冬天戶外冷，重點參觀「勤政殿」與「慶會樓」即可，不用走完全程。' },
+      { time: '12:00', title: '午餐：土俗村蔘雞湯', icon: <Utensils size={18} />, desc: '暖身首選！\n\n💡 備案：如果排隊太長，可改去附近的「無垢屋蔘雞」。' },
+      { time: '14:00', title: '北村韓屋村', icon: <Camera size={18} />, desc: '漫步傳統韓屋街道，尋找最佳拍照點。\n\n⚠️ 請注意保持安靜，因有居民居住。' },
+      { time: '16:00', title: '咖啡廳巡禮', icon: <Coffee size={18} />, desc: '☕ Cafe Onion Anguk (韓屋咖啡)。\n\n若還有多餘時間，可安排仁寺洞周邊逛逛傳統工藝店。' },
+      { time: '18:30', title: '晚餐：山清烤肉', icon: <Utensils size={18} />, desc: '📍 乙支路站熱門烤肉。\n\n💡 備案：香港飯店 0410 (韓式炸醬麵/糖醋肉)。' }
+    ],
+    3: [
+      { time: '10:00', title: '前往江南', icon: <Train size={18} />, desc: '搭乘地鐵前往三成站，準備參觀星空圖書館。' },
+      { time: '11:00', title: '星空圖書館', icon: <Camera size={18} />, desc: '📍 位於 COEX Mall 內。\n\n📸 室內溫暖，必拍巨型書牆打卡。' },
+      { time: '13:00', title: '午餐：COEX 商場', icon: <Utensils size={18} />, desc: '商場內選擇很多，若想吃大餐可安排附近的韓定食。' },
+      { time: '15:00', title: '聖水洞 (選購)', icon: <ShoppingBag size={18} />, desc: '🚕 建議搭計程車前往 (約15分鐘)。\n\n雖然 Rockfish 第一天買了，但可感受聖水洞氛圍並打卡「巨型臘腸狗裝置藝術」。' },
+      { time: '17:30', title: '晚餐：馬鈴薯排骨', icon: <Utensils size={18} />, desc: '祖傳三代馬鈴薯排骨，聖水洞必吃美食，湯頭濃郁。' }
+    ],
+    4: [
+      { time: '10:30', title: '望遠市場', icon: <Utensils size={18} />, desc: '早午餐體驗在地市場！\n\n🥢 必吃推薦：\n- Uyrak (炸辣椒)\n- 刀削麵\n- 糖餅' },
+      { time: '13:30', title: '下午茶：延南洞', icon: <Coffee size={18} />, desc: '📍 Central Site 或 Millo Coffee Roasters。\n\n☕ 這是您指定的咖啡廳，位於延南洞（靠近弘大）。' },
+      { time: '16:00', title: '京義線林蔭道', icon: <MapPin size={18} />, desc: '若天氣好可以散步。\n\n⚠️ 若太冷則建議找室內或回飯店稍作休息。' },
+      { time: '18:30', title: '晚餐：一片里脊', icon: <Utensils size={18} />, desc: '🥩 享受頂級韓牛，為旅程畫下完美句點 (明洞店)。' }
+    ],
+    5: [
+      { time: '09:00', title: '早餐', icon: <Coffee size={18} />, desc: '飯店附近簡單吃，或再吃一次喜歡的韓式吐司。' },
+      { time: '10:15', title: '前往仁川機場', icon: <Train size={18} />, desc: '⚠️ 13:45 飛機，務必準時出發！\n\n🚌 方法一：機場巴士 6015。\n🚕 方法二：請飯店叫 Jumbo Taxi 直達機場。' },
+      { time: '11:30', title: '機場報到 & 退稅', icon: <ShoppingBag size={18} />, desc: '辦理登機手續，最後免稅店補貨。' },
+      { time: '13:45', title: '起飛', icon: <Train size={18} />, desc: '平安返家。' }
+    ]
   };
-
-  useEffect(() => {
-    const fetchItinerary = async () => {
-      if (!ITINERARY_SHEET_CSV_URL) {
-        setItineraryData(FALLBACK_DATA);
-        return;
-      }
-      
-      setLoading(true);
-      try {
-        const response = await fetch(`${ITINERARY_SHEET_CSV_URL}&t=${Date.now()}`);
-        const text = await response.text();
-        const lines = text.split('\n');
-        
-        // Parsing Logic
-        // Expected CSV columns: Day, Time, Title, Description, Icon
-        const parsedData = {};
-        
-        // Skip header (i=1)
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^"|"$/g, ''));
-          if (row.length < 3) continue;
-          
-          const day = parseInt(row[0]);
-          if (!parsedData[day]) parsedData[day] = [];
-          
-          parsedData[day].push({
-            time: row[1],
-            title: row[2],
-            desc: row[3],
-            icon: row[4] ? row[4].toLowerCase() : 'default'
-          });
-        }
-        
-        setItineraryData(parsedData);
-      } catch (error) {
-        console.error("Error loading itinerary:", error);
-        setItineraryData(FALLBACK_DATA);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchItinerary();
-  }, []);
-
-  const currentDayItems = itineraryData[activeDay] || [];
 
   return (
     <div className="pb-24">
       <WeatherWidget />
-      
       <div className="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-10 py-2 -mx-4 px-4 overflow-x-auto scrollbar-hide flex gap-3 mb-4">
         {[1, 2, 3, 4, 5].map((day) => (
           <button
@@ -288,47 +243,32 @@ const ItineraryView = () => {
           </button>
         ))}
       </div>
-
-      {loading ? (
-         <div className="space-y-4 p-4">
-           <div className="h-20 bg-white rounded-2xl animate-pulse"></div>
-           <div className="h-20 bg-white rounded-2xl animate-pulse delay-75"></div>
-           <div className="h-20 bg-white rounded-2xl animate-pulse delay-150"></div>
-         </div>
-      ) : currentDayItems.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">
-          <p>本日無行程</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {currentDayItems.map((item, index) => (
-            <div 
-              key={index} 
-              onClick={() => setSelectedItem(item)}
-              className="group bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all cursor-pointer relative overflow-hidden"
-            >
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center min-w-[3.5rem] pt-1">
-                  <span className="text-sm font-bold text-slate-800">{item.time}</span>
-                  <div className="h-full w-0.5 bg-slate-100 mt-2 mb-[-1rem] group-last:bg-transparent"></div>
-                </div>
-                <div className="flex-grow pb-2">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                      {/* Dynamic Icon Mapping */}
-                      {ICON_MAP[item.icon] || ICON_MAP['default']}
-                    </div>
-                    <h4 className="font-bold text-slate-800 text-lg">{item.title}</h4>
-                  </div>
-                  <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">{item.desc}</p>
-                </div>
-                <div className="flex items-center text-slate-300"><ChevronRight size={20} /></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
+      <div className="space-y-4">
+        {itineraryData[activeDay].map((item, index) => (
+          <div 
+            key={index} 
+            onClick={() => setSelectedItem(item)}
+            className="group bg-white rounded-2xl p-4 shadow-sm border border-slate-100 active:scale-[0.98] transition-all cursor-pointer relative overflow-hidden"
+          >
+             <div className="flex gap-4">
+               <div className="flex flex-col items-center min-w-[3.5rem] pt-1">
+                 <span className="text-sm font-bold text-slate-800">{item.time}</span>
+                 <div className="h-full w-0.5 bg-slate-100 mt-2 mb-[-1rem] group-last:bg-transparent"></div>
+               </div>
+               <div className="flex-grow pb-2">
+                 <div className="flex items-center gap-2 mb-1.5">
+                   <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                     {item.icon}
+                   </div>
+                   <h4 className="font-bold text-slate-800 text-lg">{item.title}</h4>
+                 </div>
+                 <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">{item.desc}</p>
+               </div>
+               <div className="flex items-center text-slate-300"><ChevronRight size={20} /></div>
+             </div>
+          </div>
+        ))}
+      </div>
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedItem(null)}></div>
@@ -347,7 +287,7 @@ const ItineraryView = () => {
   );
 };
 
-// 3. Expense View (保持不變，僅引用設定)
+// 3. Expense View
 const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate }) => {
   const [viewMode, setViewMode] = useState('list');
   const [showFormModal, setShowFormModal] = useState(false);
@@ -382,10 +322,6 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!GOOGLE_FORM_ACTION_URL) {
-      alert("未設定表單網址，請檢查環境變數。");
-      return;
-    }
     setSubmitting(true);
     let amountToSave = parseFloat(formData.amount);
     if (currencyMode === 'TWD') {
@@ -596,7 +532,6 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
 const RemindersView = () => {
   const tips = [
     { title: 'APP 必備', icon: <Map className="text-blue-500" />, desc: 'Naver Map (查路線)、Kakao T (叫車)、Wowpass。' },
-    { title: '排隊策略', icon: <Clock className="text-orange-500" />, desc: '熱門店若等超過30分，果斷換備案。' },
     { title: '洋蔥式穿搭', icon: <Thermometer className="text-red-500" />, desc: '室內暖氣強，厚外套+薄內裡最適合。' },
   ];
 
@@ -698,7 +633,7 @@ const OthersView = ({ exchangeRate, setExchangeRate }) => {
       </div>
       
       <div className="text-center text-slate-300 text-xs py-4">
-        v2.6 Seoul Trip App
+        v2.5 Seoul Trip App
       </div>
     </div>
   );
