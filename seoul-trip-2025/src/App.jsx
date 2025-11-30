@@ -40,7 +40,7 @@ import {
 // ==========================================
 
 // 設定您的登入密碼 (建議用簡單好記的，例如出發日期或年份)
-const APP_PASSWORD = import.meta.env.AUTH_PIN || ""; 
+const APP_PASSWORD = import.meta.env.VITE_AUTH_PIN || ""; 
 
 // ==========================================
 // 🔧 設定區域
