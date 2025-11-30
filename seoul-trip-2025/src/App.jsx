@@ -30,15 +30,23 @@ import {
   Map,
   Thermometer,
   Lightbulb,
-  Home
+  Home,
+  Lock,
+  Plane
 } from 'lucide-react';
+
+// ==========================================
+// 🔐 安全設定區域
+// ==========================================
+
+// 設定您的登入密碼 (建議用簡單好記的，例如出發日期或年份)
+const APP_PASSWORD = import.meta.env.AUTH_PIN || ""; 
 
 // ==========================================
 // 🔧 設定區域
 // ==========================================
 
 // 1. Google 表單提交網址 (Action URL)
-//    📝 部署說明：在本地端/GitHub 部署時，若要使用環境變數隱藏網址，請取消下方註解，並註解掉寫死的網址
 const GOOGLE_FORM_ACTION_URL = import.meta.env.VITE_GOOGLE_FORM_ACTION_URL || "";
 
 // 2. Google 表單欄位 ID (Entry IDs)
@@ -50,7 +58,6 @@ const FORM_ENTRY_IDS = {
 };
 
 // 3. Google 試算表 CSV 連結 (讀取用)
-//    📝 部署說明：在本地端/GitHub 部署時，若要使用環境變數隱藏網址，請取消下方註解，並註解掉寫死的網址
 const DEFAULT_SHEET_CSV_URL = import.meta.env.VITE_GOOGLE_SHEET_CSV_URL || "";
 
 // ==========================================
@@ -58,6 +65,56 @@ const DEFAULT_SHEET_CSV_URL = import.meta.env.VITE_GOOGLE_SHEET_CSV_URL || "";
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'seoul-trip-prod';
 
 // --- Components ---
+
+// 0. Login View (新增的登入畫面)
+const LoginView = ({ onLogin }) => {
+  const [input, setInput] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (input === APP_PASSWORD) {
+      onLogin();
+    } else {
+      setError(true);
+      setInput('');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
+      <div className="w-20 h-20 bg-indigo-500 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/30">
+        <Plane size={40} className="text-white" />
+      </div>
+      <h1 className="text-2xl font-bold mb-2">首爾之旅 2025</h1>
+      <p className="text-slate-400 text-sm mb-8">請輸入密碼以查看行程</p>
+
+      <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-4">
+        <div>
+          <input 
+            type="tel" // 使用 tel 鍵盤方便手機輸入數字
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setError(false);
+            }}
+            placeholder="輸入 PIN 碼"
+            className={`w-full bg-slate-800 border-2 ${error ? 'border-red-500' : 'border-slate-700 focus:border-indigo-500'} rounded-2xl py-4 px-6 text-center text-xl font-bold tracking-widest outline-none transition-all`}
+            maxLength={6}
+          />
+          {error && <p className="text-red-500 text-xs text-center mt-2 animate-bounce">密碼錯誤，請再試一次</p>}
+        </div>
+        <button 
+          type="submit" 
+          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-indigo-900/50"
+        >
+          解鎖進入
+        </button>
+      </form>
+      <p className="fixed bottom-8 text-slate-600 text-xs">Family Trip App v2.5</p>
+    </div>
+  );
+};
 
 // 1. Weather Widget
 const WeatherWidget = () => {
@@ -265,10 +322,6 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!GOOGLE_FORM_ACTION_URL) {
-      alert("未設定表單網址，請檢查環境變數。");
-      return;
-    }
     setSubmitting(true);
     let amountToSave = parseFloat(formData.amount);
     if (currencyMode === 'TWD') {
@@ -589,6 +642,9 @@ const OthersView = ({ exchangeRate, setExchangeRate }) => {
 // --- Main App ---
 export default function App() {
   const [activeTab, setActiveTab] = useState('itinerary');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState(false);
   
   // Lifted States
   const [expenses, setExpenses] = useState([]);
@@ -601,6 +657,26 @@ export default function App() {
     { id: 'reminders', label: '提醒', icon: <Bell size={24} /> },
     { id: 'others', label: '其他', icon: <Grid size={24} /> },
   ];
+
+  // Auth check
+  useEffect(() => {
+    const savedAuth = localStorage.getItem('tripAppAuth');
+    if (savedAuth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (passwordInput === APP_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem('tripAppAuth', 'true');
+      setLoginError(false);
+    } else {
+      setLoginError(true);
+      setPasswordInput('');
+    }
+  };
 
   // Global Expense Fetching Logic (Refined CSV Parser)
   const fetchExpenses = async () => {
@@ -671,8 +747,17 @@ export default function App() {
     setExpenses(prev => [newItem, ...prev]);
   };
 
-  // Initial Fetch
-  useEffect(() => { fetchExpenses(); }, []);
+  // Initial Fetch if authenticated
+  useEffect(() => { 
+    if (isAuthenticated) fetchExpenses(); 
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return <LoginView onLogin={() => {
+      setIsAuthenticated(true);
+      localStorage.setItem('tripAppAuth', 'true');
+    }} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex justify-center">
