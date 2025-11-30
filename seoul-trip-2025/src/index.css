@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局樣式設定，優化手機體驗 */
+body {
+  background-color: #f8fafc; /* bg-slate-50 */
+  overscroll-behavior-y: none; /* 防止下拉重整 */
+  -webkit-tap-highlight-color: transparent;
+}
