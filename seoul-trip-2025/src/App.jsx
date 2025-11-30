@@ -34,14 +34,14 @@ import {
   Bed,
   Plane,
   UtensilsCrossed,
-  Lock
+  Lock,
+  Bug
 } from 'lucide-react';
 
 // ==========================================
 // 🔐 安全設定區域
 // ==========================================
 
-// 為了避免預覽環境報錯，這裡做了一個安全讀取檢查
 const getEnv = (key, defaultValue) => {
   try {
     return import.meta.env[key] || defaultValue;
@@ -56,13 +56,13 @@ const APP_PASSWORD = getEnv("VITE_AUTH_PIN", "2026");
 // 🔧 設定區域
 // ==========================================
 
-// 1. Google 表單 Action URL (已修正為正確的 Form ID)
+// 1. Google 表單 Action URL
 const GOOGLE_FORM_ACTION_URL = getEnv(
   "VITE_GOOGLE_FORM_ACTION_URL", 
   ""
 );
 
-// 2. Google 表單 Entry IDs (確認與您的 pre-filled link 一致)
+// 2. Google 表單 Entry IDs
 const FORM_ENTRY_IDS = {
   ITEM: "entry.535523921",     
   AMOUNT: "entry.304377441",   
@@ -76,7 +76,7 @@ const DEFAULT_SHEET_CSV_URL = getEnv(
   ""
 );
 
-// 4. 行程表 CSV (行程讀取用 - 已更新為您提供的連結)
+// 4. 行程表 CSV (行程讀取用)
 const ITINERARY_SHEET_CSV_URL = getEnv(
   "VITE_GOOGLE_SHEET_PLAN_CSV_URL", 
   ""
@@ -110,23 +110,19 @@ const smartParseCSV = (csvText) => {
 
     if (char === '"') {
       if (inQuotes && nextChar === '"') {
-        // 處理轉義引號 ("") -> (")
         currentCell += '"';
         i++; 
       } else {
-        // 切換引號狀態
         inQuotes = !inQuotes;
       }
     } else if (char === ',' && !inQuotes) {
-      // 欄位結束
       currentRow.push(currentCell.trim());
       currentCell = '';
     } else if ((char === '\r' || char === '\n') && !inQuotes) {
-      // 行結束
-      if (char === '\r' && nextChar === '\n') i++; // 處理 Windows 換行
+      if (char === '\r' && nextChar === '\n') i++; 
       
       currentRow.push(currentCell.trim());
-      if (currentRow.some(cell => cell !== '')) { // 忽略空行
+      if (currentRow.some(cell => cell !== '')) { 
         rows.push(currentRow);
       }
       currentRow = [];
@@ -135,7 +131,6 @@ const smartParseCSV = (csvText) => {
       currentCell += char;
     }
   }
-  // 處理最後一行
   if (currentCell || currentRow.length > 0) {
     currentRow.push(currentCell.trim());
     rows.push(currentRow);
@@ -184,7 +179,9 @@ const LoginView = ({ onLogin }) => {
           />
           {error && <p className="text-red-500 text-xs text-center mt-2 animate-bounce">密碼錯誤，請再試一次</p>}
         </div>
-        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-indigo-900/50">
+        <button 
+          type="submit" 
+          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-indigo-900/50">
           解鎖進入
         </button>
       </form>
@@ -262,8 +259,9 @@ const ItineraryView = () => {
     5: '1/19 (一)'
   };
 
-  // 預設資料清空
-  const FALLBACK_DATA = {};
+  const FALLBACK_DATA = {
+    1: [{ time: 'INFO', title: '請連結 Google Sheet', icon: 'map', desc: '目前無行程資料，請確認 CSV 連結。' }]
+  };
 
   useEffect(() => {
     const fetchItinerary = async () => {
@@ -277,8 +275,6 @@ const ItineraryView = () => {
         const response = await fetch(`${ITINERARY_SHEET_CSV_URL}&t=${Date.now()}`);
         if (!response.ok) throw new Error("Network response was not ok");
         const text = await response.text();
-        
-        // 使用新的解析器處理
         const rows = smartParseCSV(text);
         
         if (rows.length < 2) {
@@ -297,10 +293,8 @@ const ItineraryView = () => {
 
         const parsedData = {};
         
-        // 從第 1 列開始 (跳過 header)
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          // 忽略空行或欄位不足的行
           if (row.length < 2) continue;
           
           const dayStr = idxDay > -1 ? row[idxDay] : row[0];
@@ -366,7 +360,6 @@ const ItineraryView = () => {
       ) : currentDayItems.length === 0 ? (
         <div className="text-center py-12 text-slate-400">
           <p>本日無行程資料</p>
-          <p className="text-xs mt-2 text-slate-300">(請確認 Google Sheet 連結與格式)</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -450,20 +443,27 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!GOOGLE_FORM_ACTION_URL) {
-      alert("未設定表單網址，請檢查環境變數。");
-      return;
-    }
     setSubmitting(true);
     let amountToSave = parseFloat(formData.amount);
     if (currencyMode === 'TWD') {
       amountToSave = Math.round(amountToSave / exchangeRate);
     }
+    
+    // 為了除錯，將填寫的內容印在 Console ##
+    console.log("正在提交記帳:", formData, "存入金額(KRW):", amountToSave);
+
+    // 呼叫上層函式，這會觸發「樂觀更新」(Optimistic Update)
     await onAddExpense({ ...formData, amount: amountToSave });
+
     setFormData({ item: '', amount: '', category: '食物', payer: '爸' });
     setSubmitting(false);
     setShowFormModal(false);
   };
+
+  // 產生除錯用的預填連結 ##
+  const debugLink = GOOGLE_FORM_ACTION_URL 
+    ? `${GOOGLE_FORM_ACTION_URL.replace('/formResponse', '/viewform')}?usp=pp_url&${FORM_ENTRY_IDS.ITEM}=測試項目&${FORM_ENTRY_IDS.AMOUNT}=100&${FORM_ENTRY_IDS.PAYER}=信&${FORM_ENTRY_IDS.CATEGORY}=食物`
+    : "#";
 
   const totalKRW = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const totalTWD = Math.round(totalKRW * exchangeRate);
@@ -516,6 +516,15 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
             <Plus size={24} /> 記一筆
           </button>
 
+          {/* Debug Link ## */}
+          {(!expenses.length && !loading) && (
+            <div className="text-center mb-4">
+              <a href={debugLink} target="_blank" rel="noreferrer" className="text-xs text-slate-300 underline flex items-center justify-center gap-1 hover:text-indigo-500">
+                <Bug size={10} /> 點我測試表單權限 (若失敗代表表單需開放)
+              </a>
+            </div>
+          )}
+
           {/* List Header with Count */}
           <div className="flex items-center gap-2 mb-3 px-1 text-slate-500 text-xs font-bold">
             <span>共 {expenses.length} 筆資料</span>
@@ -531,7 +540,7 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
               </div>
             ) : (
               expenses.map((item, idx) => (
-                <div key={idx} className={`bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between transition-all ${item.isPending ? 'bg-indigo-50 border-indigo-100' : ''}`}>
+                <div key={idx} className={`bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between transition-all ${item.isPending ? 'bg-indigo-50 border-indigo-100 shadow-inner' : ''}`}>
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${
                       item.category?.includes('食') ? 'bg-orange-50 text-orange-500' : 
@@ -552,7 +561,7 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                         <span className="text-xs font-bold text-slate-400 bg-slate-100 px-1.5 rounded">
                           {item.author || 'N/A'}
                         </span>
-                        {item.isPending && <span className="text-[10px] bg-indigo-100 text-indigo-600 px-1.5 rounded">儲存中...</span>}
+                        {item.isPending && <span className="text-[10px] bg-indigo-100 text-indigo-600 px-1.5 rounded flex items-center gap-1"><RefreshCw size={8} className="animate-spin"/> 寫入中 (本地暫存)</span>}
                       </div>
                     </div>
                   </div>
@@ -811,55 +820,77 @@ export default function App() {
     }
   };
 
-  // Global Expense Fetching Logic (Refined CSV Parser)
+  // Global Expense Fetching Logic (Refined CSV Parser with Local Cache)
   const fetchExpenses = async () => {
     // 檢查是否設定了 CSV URL
     if (!DEFAULT_SHEET_CSV_URL) return;
 
     setLoadingExpenses(true);
     try {
-      // Add timestamp to prevent browser caching
-      const response = await fetch(`${DEFAULT_SHEET_CSV_URL}&t=${Date.now()}`);
-      const text = await response.text();
-      const lines = text.split('\n');
-      if (lines.length < 2) {
-        setExpenses([]);
-        return;
+      let fetchedData = [];
+      // Try fetch Google Sheet
+      if (DEFAULT_SHEET_CSV_URL && DEFAULT_SHEET_CSV_URL.startsWith('http')) {
+        try {
+          const response = await fetch(`${DEFAULT_SHEET_CSV_URL}&t=${Date.now()}`);
+          if (response.ok) {
+            const text = await response.text();
+            const rows = smartParseCSV(text);
+            
+            if (rows.length >= 2) {
+              const headers = rows[0];
+              const getIndex = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
+              
+              const idxItem = getIndex(['項目', 'Item']);
+              const idxAmount = getIndex(['金額', 'Amount']);
+              const idxCategory = getIndex(['分類', 'Category', '類別']);
+              const idxPayer = getIndex(['付款人', 'Payer', '誰付錢', '付款']);
+              const idxTime = getIndex(['時間', 'Timestamp']);
+
+              for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.length < 2) continue;
+                fetchedData.push({
+                  id: `sheet-${i}`,
+                  timestamp: idxTime > -1 ? row[idxTime] : row[0],
+                  desc: idxItem > -1 ? row[idxItem] : row[1],
+                  amount: parseFloat((idxAmount > -1 ? row[idxAmount] : row[2]) || 0),
+                  category: idxCategory > -1 ? row[idxCategory] : row[3],
+                  author: idxPayer > -1 ? row[idxPayer] : (row[4] || '')
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Remote fetch failed, using local cache only", e);
+        }
       }
-
-      // Dynamic Header Mapping
-      // Handle typical CSV header row which might be quoted
-      const headerLine = lines[0];
-      // Helper to split CSV line safely
-      const splitLine = (line) => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.trim().replace(/^"|"$/g, ''));
       
-      const headers = splitLine(headerLine);
+      // Merge with LocalStorage pending items
+      const pendingItems = JSON.parse(localStorage.getItem('pendingExpenses') || '[]');
+      // Filter out pending items that match any fetched items (deduplication)
+      // Also filter out items older than 1 hour to prevent stuck items
+      const now = Date.now();
       
-      // Find indices based on keywords (robustness)
-      const getIndex = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
-      
-      const idxItem = getIndex(['項目', 'Item']);
-      const idxAmount = getIndex(['金額', 'Amount']);
-      const idxCategory = getIndex(['分類', 'Category', '類別']);
-      const idxPayer = getIndex(['付款人', 'Payer', '誰付錢', '付款']);
-      const idxTime = getIndex(['時間', 'Timestamp']);
-
-      const data = [];
-      for (let i = 1; i < lines.length; i++) {
-        const row = splitLine(lines[i]);
-        if (row.length < 2) continue; // Skip empty rows
-
-        data.push({
-          id: i,
-          timestamp: idxTime > -1 ? row[idxTime] : row[0],
-          desc: idxItem > -1 ? row[idxItem] : row[1],
-          amount: parseFloat((idxAmount > -1 ? row[idxAmount] : row[2]) || 0),
-          category: idxCategory > -1 ? row[idxCategory] : row[3],
-          // Important: Fallback to empty string if not found, to avoid 'undefined'
-          author: idxPayer > -1 ? row[idxPayer] : (row[4] || '')
+      const validPending = pendingItems.filter(pending => {
+        const isSynced = fetchedData.some(sheetItem => {
+           // Simple deduplication: same desc, same amount, same author
+           // Using loose equality for amount in case of string/number difference
+           return sheetItem.desc === pending.desc && 
+                  Math.abs(sheetItem.amount - pending.amount) < 1 && 
+                  sheetItem.author === pending.author;
         });
-      }
-      setExpenses(data.reverse());
+        
+        // Keep it if NOT synced AND not too old (1 hour)
+        if (isSynced) return false;
+        return (now - pending.createdAt) < 3600000;
+      });
+
+      localStorage.setItem('pendingExpenses', JSON.stringify(validPending));
+
+      // Combine: Pending on top, then Sheet data (newest first)
+      const combinedData = [...validPending, ...fetchedData.reverse()];
+      setExpenses(combinedData);
+
     } catch (error) {
       console.error("Fetch Error", error);
     } finally {
@@ -869,18 +900,25 @@ export default function App() {
 
   const handleAddExpenseLocal = (newItemData) => {
     const newItem = {
-      id: Date.now(), 
+      id: `local-${Date.now()}`, 
       timestamp: new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
       desc: newItemData.item,
       amount: newItemData.amount,
       category: newItemData.category,
       author: newItemData.payer,
-      isPending: true 
+      isPending: true,
+      createdAt: Date.now()
     };
+    
+    // Save to Local Storage
+    const currentPending = JSON.parse(localStorage.getItem('pendingExpenses') || '[]');
+    localStorage.setItem('pendingExpenses', JSON.stringify([newItem, ...currentPending]));
+
+    // Update State
     setExpenses(prev => [newItem, ...prev]);
   };
 
-  // Initial Fetch if authenticated
+  // Initial Fetch
   useEffect(() => { 
     if (isAuthenticated) fetchExpenses(); 
   }, [isAuthenticated]);
@@ -911,6 +949,9 @@ export default function App() {
               loading={loadingExpenses} 
               onRefresh={fetchExpenses} 
               onAddExpense={async (data) => {
+                // Optimistic Update: Save locally first
+                handleAddExpenseLocal(data);
+
                 try {
                   const googleFormData = new FormData();
                   googleFormData.append(FORM_ENTRY_IDS.ITEM, data.item);
@@ -918,14 +959,15 @@ export default function App() {
                   googleFormData.append(FORM_ENTRY_IDS.CATEGORY, data.category);
                   googleFormData.append(FORM_ENTRY_IDS.PAYER, data.payer);
                   
-                  // Submit to Google Form
-                  await fetch(GOOGLE_FORM_ACTION_URL, { method: 'POST', body: googleFormData, mode: 'no-cors' });
+                  if (GOOGLE_FORM_ACTION_URL) {
+                    await fetch(GOOGLE_FORM_ACTION_URL, { method: 'POST', body: googleFormData, mode: 'no-cors' });
+                  } else {
+                    console.warn("Form URL missing, saved locally only");
+                  }
                   
-                  // Update local state immediately
-                  handleAddExpenseLocal(data);
                 } catch (error) {
                   console.error("Submission Error:", error);
-                  alert("記帳失敗，請檢查網路連線");
+                  // Error handled silently as data is saved locally
                 }
               }}
               exchangeRate={exchangeRate}
