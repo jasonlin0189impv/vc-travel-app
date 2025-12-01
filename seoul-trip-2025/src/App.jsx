@@ -35,7 +35,8 @@ import {
   Plane,
   UtensilsCrossed,
   Lock,
-  Bug
+  Bug,
+  Check
 } from 'lucide-react';
 
 // ==========================================
@@ -82,7 +83,10 @@ const ITINERARY_SHEET_CSV_URL = getEnv(
   ""
 );
 
-// 5. 圖示對照
+// 5. 成員名單
+const MEMBERS = ['爸', '媽', '信', '屏', '樸'];
+
+// 6. 圖示對照
 const ICON_MAP = {
   'train': <Train size={18} />,
   'plane': <Plane size={18} />,
@@ -412,61 +416,98 @@ const ItineraryView = () => {
 const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate }) => {
   const [viewMode, setViewMode] = useState('list');
   const [showFormModal, setShowFormModal] = useState(false);
-  const [formData, setFormData] = useState({ item: '', amount: '', category: '食物', payer: '爸' }); 
-  const [currencyMode, setCurrencyMode] = useState('KRW');
+  
+  // 設定預設為台幣
+  const [currencyMode, setCurrencyMode] = useState('TWD');
+  const [formData, setFormData] = useState({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS });
   const [submitting, setSubmitting] = useState(false);
 
   // 拆帳計算
   const splitData = useMemo(() => {
-    const people = ['爸', '媽', '信', '屏', '樸'];
-    const balance = { '爸': 0, '媽': 0, '信': 0, '屏': 0, '樸': 0 };
-    let totalExpense = 0;
+    const netBalance = {};
+    MEMBERS.forEach(p => netBalance[p] = 0);
+    const paidTotal = {};
+    MEMBERS.forEach(p => paidTotal[p] = 0);
 
     expenses.forEach(item => {
-      const author = item.author ? item.author.trim() : '';
-      if (people.includes(author)) {
-        totalExpense += item.amount;
-        balance[author] += item.amount;
+      // 資料庫現在統一存台幣，所以這裡直接拿來用，不需要再換算
+      const amount = item.amount;
+      const payer = item.author ? item.author.trim() : '';
+      
+      // 1. 付款人 (+)
+      if (MEMBERS.includes(payer)) {
+        netBalance[payer] += amount;
+        paidTotal[payer] += amount;
       }
+
+      // 2. 分攤人 (-)
+      const splitMembers = item.splitWith && item.splitWith.length > 0 ? item.splitWith : MEMBERS;
+      const costPerPerson = amount / splitMembers.length;
+      
+      splitMembers.forEach(member => {
+        if (netBalance[member] !== undefined) {
+          netBalance[member] -= costPerPerson;
+        }
+      });
     });
 
-    const average = totalExpense / people.length;
-    
-    const debts = people.map(p => ({
+    const debts = MEMBERS.map(p => ({
       name: p,
-      paid: balance[p],
-      diff: balance[p] - average
-    })).sort((a, b) => a.diff - b.diff);
+      paid: paidTotal[p],
+      net: netBalance[p]
+    })).sort((a, b) => a.net - b.net);
 
-    return { totalExpense, average, debts };
+    return { debts };
   }, [expenses]);
+
+  const toggleSplitMember = (member) => {
+    setFormData(prev => {
+      const current = prev.splitWith;
+      if (current.includes(member)) {
+        if (current.length === 1) return prev;
+        return { ...prev, splitWith: current.filter(m => m !== member) };
+      } else {
+        return { ...prev, splitWith: [...current, member] };
+      }
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    let amountToSave = parseFloat(formData.amount);
-    if (currencyMode === 'TWD') {
-      amountToSave = Math.round(amountToSave / exchangeRate);
-    }
     
-    // 為了除錯，將填寫的內容印在 Console ##
-    console.log("正在提交記帳:", formData, "存入金額(KRW):", amountToSave);
+    // 修正邏輯：統一存台幣
+    let finalAmount = parseFloat(formData.amount);
+    
+    if (currencyMode === 'KRW') {
+      // 如果輸入韓元，換算成台幣儲存
+      finalAmount = Math.round(finalAmount * exchangeRate);
+    } 
+    // 如果輸入台幣，維持原值
 
-    // 呼叫上層函式，這會觸發「樂觀更新」(Optimistic Update)
-    await onAddExpense({ ...formData, amount: amountToSave });
+    let finalItemName = formData.item;
+    if (formData.splitWith.length < MEMBERS.length) {
+      finalItemName += ` #split:${formData.splitWith.join(',')}`;
+    }
 
-    setFormData({ item: '', amount: '', category: '食物', payer: '爸' });
+    const submissionData = {
+      item: finalItemName,
+      amount: finalAmount, // 永遠是台幣
+      category: formData.category,
+      payer: formData.payer,
+      splitWith: formData.splitWith
+    };
+
+    await onAddExpense(submissionData);
+    setFormData({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS });
     setSubmitting(false);
     setShowFormModal(false);
   };
 
-  // 產生除錯用的預填連結 ##
-  const debugLink = GOOGLE_FORM_ACTION_URL 
-    ? `${GOOGLE_FORM_ACTION_URL.replace('/formResponse', '/viewform')}?usp=pp_url&${FORM_ENTRY_IDS.ITEM}=測試項目&${FORM_ENTRY_IDS.AMOUNT}=100&${FORM_ENTRY_IDS.PAYER}=信&${FORM_ENTRY_IDS.CATEGORY}=食物`
-    : "#";
-
-  const totalKRW = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-  const totalTWD = Math.round(totalKRW * exchangeRate);
+  // 總金額：因為資料庫是台幣，直接加總
+  const totalTWD = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  // 韓元僅供參考，反推回去
+  const totalKRW = Math.round(totalTWD / exchangeRate);
 
   return (
     <div className="pb-24 pt-2">
@@ -474,14 +515,14 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
       <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl shadow-slate-200 mb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mt-10 -mr-10"></div>
         <div className="relative z-10">
-          <p className="text-slate-400 text-sm font-medium mb-1">目前總開銷 (估算)</p>
+          <p className="text-slate-400 text-sm font-medium mb-1">目前總開銷 (台幣)</p>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-light opacity-50">NT$</span>
             <h2 className="text-5xl font-bold tracking-tight">{totalTWD.toLocaleString()}</h2>
           </div>
           <div className="mt-4 flex items-center justify-between">
              <span className="text-sm text-slate-400 bg-white/10 px-3 py-1 rounded-full flex items-center gap-1">
-               <span className="text-[10px]">KRW</span> {totalKRW.toLocaleString()}
+               <span className="text-[10px]">約</span> ₩{totalKRW.toLocaleString()}
              </span>
              <button onClick={onRefresh} className="bg-white/10 p-2 rounded-full hover:bg-white/20">
                <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
@@ -516,16 +557,6 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
             <Plus size={24} /> 記一筆
           </button>
 
-          {/* Debug Link ## */}
-          {(!expenses.length && !loading) && (
-            <div className="text-center mb-4">
-              <a href={debugLink} target="_blank" rel="noreferrer" className="text-xs text-slate-300 underline flex items-center justify-center gap-1 hover:text-indigo-500">
-                <Bug size={10} /> 點我測試表單權限 (若失敗代表表單需開放)
-              </a>
-            </div>
-          )}
-
-          {/* List Header with Count */}
           <div className="flex items-center gap-2 mb-3 px-1 text-slate-500 text-xs font-bold">
             <span>共 {expenses.length} 筆資料</span>
             <span className="text-slate-300">|</span>
@@ -556,7 +587,14 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                         <CreditCard size={20} />}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800">{item.desc}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-slate-800">{item.desc.split('#')[0]}</p> 
+                        {item.splitWith && item.splitWith.length < MEMBERS.length && (
+                          <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1 rounded border border-indigo-100 whitespace-nowrap">
+                            {item.splitWith.join(',')}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-xs font-bold text-slate-400 bg-slate-100 px-1.5 rounded">
                           {item.author || 'N/A'}
@@ -566,8 +604,9 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-slate-800">₩{item.amount.toLocaleString()}</p>
-                    <span className="text-xs text-slate-400">≈ NT${Math.round(item.amount * exchangeRate).toLocaleString()}</span>
+                    {/* item.amount 已經是台幣了，直接顯示 */}
+                    <p className="font-bold text-slate-800">NT${item.amount.toLocaleString()}</p>
+                    <span className="text-xs text-slate-400">≈ ₩{Math.round(item.amount / exchangeRate).toLocaleString()}</span>
                   </div>
                 </div>
               ))
@@ -577,37 +616,29 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
       ) : (
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-            <h4 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4">每人平均分攤</h4>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-3xl font-bold text-slate-800">₩ {Math.round(splitData.average).toLocaleString()}</span>
-            </div>
-            <p className="text-xs text-slate-400">≈ NT$ {Math.round(splitData.average * exchangeRate).toLocaleString()}</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <h4 className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4">結算狀況 (台幣)</h4>
             <div className="space-y-4">
               {splitData.debts.map((p, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${p.diff >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${p.net >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                       {p.name}
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-700">{p.name}</p>
-                      <p className="text-xs text-slate-400">已付 ₩{p.paid.toLocaleString()}</p>
+                      <p className="text-xs text-slate-400">已墊付 NT${p.paid.toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className={`text-sm font-bold ${p.diff >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {p.diff >= 0 ? `收回 NT$${Math.round(p.diff * exchangeRate).toLocaleString()}` : `需付 NT$${Math.round(Math.abs(p.diff) * exchangeRate).toLocaleString()}`}
+                  <div className={`text-sm font-bold ${p.net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {p.net >= 0 ? `收回 NT$${Math.round(p.net).toLocaleString()}` : `需付 NT$${Math.round(Math.abs(p.net)).toLocaleString()}`}
                   </div>
                 </div>
               ))}
             </div>
           </div>
           <div className="text-center text-xs text-slate-400 px-4">
-            <p>* 此為簡單均分計算，不包含「公費」支出的項目。</p>
-            <p>已付顯示韓元，結算建議使用台幣轉帳。</p>
+            <p>* 正數代表應收回的錢，負數代表應支付的錢。</p>
+            <p>金額皆以台幣計算。</p>
           </div>
         </div>
       )}
@@ -632,7 +663,13 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                     <span className="text-2xl text-slate-400 font-light">{currencyMode === 'KRW' ? '₩' : '$'}</span>
                     <input type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full bg-transparent text-3xl font-bold text-slate-800 outline-none placeholder-slate-300" placeholder="0" autoFocus required />
                   </div>
-                  {currencyMode === 'TWD' && formData.amount && <div className="mt-2 pt-2 border-t border-slate-200/50 text-xs text-indigo-500 font-medium flex items-center gap-1"><ArrowLeftRight size={10} /> 自動換算約 ₩{Math.round(formData.amount / exchangeRate).toLocaleString()}</div>}
+                  {/* 輸入韓元時，提示會轉成台幣存 */}
+                  {currencyMode === 'KRW' && formData.amount && (
+                    <div className="mt-2 pt-2 border-t border-slate-200/50 text-xs text-indigo-500 font-medium flex items-center gap-1">
+                      <ArrowLeftRight size={10} /> 
+                      自動換算約 NT${Math.round(formData.amount * exchangeRate).toLocaleString()} (將以此金額存入)
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 ml-1">項目</label>
@@ -660,6 +697,36 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                     </select>
                    </div>
                 </div>
+
+                {/* Split With */}
+                <div className="pt-2">
+                  <label className="text-xs font-bold text-slate-500 ml-1 mb-2 block">分攤對象</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {MEMBERS.map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => toggleSplitMember(m)}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
+                          formData.splitWith.includes(m)
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                            : 'bg-white text-slate-400 border-slate-200 hover:border-indigo-200'
+                        }`}
+                      >
+                        {m}
+                        {formData.splitWith.includes(m) && <Check size={12} className="inline-block ml-1"/>}
+                      </button>
+                    ))}
+                    <button 
+                      type="button"
+                      onClick={() => setFormData(prev => ({...prev, splitWith: MEMBERS}))}
+                      className="px-3 py-2 rounded-xl text-xs font-bold text-indigo-500 bg-indigo-50 ml-auto"
+                    >
+                      全選
+                    </button>
+                  </div>
+                </div>
+
                 <button type="submit" disabled={submitting} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg mt-4 shadow-lg shadow-indigo-200">{submitting ? '傳送中...' : '確認記帳'}</button>
               </form>
            </div>
@@ -820,7 +887,7 @@ export default function App() {
     }
   };
 
-  // Global Expense Fetching Logic (Refined CSV Parser with Local Cache)
+  // Global Expense Fetching Logic (Refined CSV Parser with Local Cache & Split Extraction)
   const fetchExpenses = async () => {
     // 檢查是否設定了 CSV URL
     if (!DEFAULT_SHEET_CSV_URL) return;
@@ -849,13 +916,27 @@ export default function App() {
               for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (row.length < 2) continue;
+                
+                // Extract split info from Item string
+                let rawItem = idxItem > -1 ? row[idxItem] : row[1];
+                let splitWith = MEMBERS; // Default all
+                
+                // Look for #split:A,B tag
+                const splitMatch = rawItem.match(/#split:(.*)/);
+                if (splitMatch) {
+                  splitWith = splitMatch[1].split(',').map(s => s.trim());
+                  // Remove tag from display text
+                  // rawItem = rawItem.replace(/#split:.*$/, '').trim(); // Optional: remove from display
+                }
+
                 fetchedData.push({
                   id: `sheet-${i}`,
                   timestamp: idxTime > -1 ? row[idxTime] : row[0],
-                  desc: idxItem > -1 ? row[idxItem] : row[1],
+                  desc: rawItem,
                   amount: parseFloat((idxAmount > -1 ? row[idxAmount] : row[2]) || 0),
                   category: idxCategory > -1 ? row[idxCategory] : row[3],
-                  author: idxPayer > -1 ? row[idxPayer] : (row[4] || '')
+                  author: idxPayer > -1 ? row[idxPayer] : (row[4] || ''),
+                  splitWith: splitWith
                 });
               }
             }
@@ -867,27 +948,20 @@ export default function App() {
       
       // Merge with LocalStorage pending items
       const pendingItems = JSON.parse(localStorage.getItem('pendingExpenses') || '[]');
-      // Filter out pending items that match any fetched items (deduplication)
-      // Also filter out items older than 1 hour to prevent stuck items
       const now = Date.now();
       
       const validPending = pendingItems.filter(pending => {
         const isSynced = fetchedData.some(sheetItem => {
-           // Simple deduplication: same desc, same amount, same author
-           // Using loose equality for amount in case of string/number difference
            return sheetItem.desc === pending.desc && 
                   Math.abs(sheetItem.amount - pending.amount) < 1 && 
                   sheetItem.author === pending.author;
         });
-        
-        // Keep it if NOT synced AND not too old (1 hour)
         if (isSynced) return false;
         return (now - pending.createdAt) < 3600000;
       });
 
       localStorage.setItem('pendingExpenses', JSON.stringify(validPending));
 
-      // Combine: Pending on top, then Sheet data (newest first)
       const combinedData = [...validPending, ...fetchedData.reverse()];
       setExpenses(combinedData);
 
@@ -902,10 +976,11 @@ export default function App() {
     const newItem = {
       id: `local-${Date.now()}`, 
       timestamp: new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
-      desc: newItemData.item,
+      desc: newItemData.item, // Contains the #split tag already
       amount: newItemData.amount,
       category: newItemData.category,
       author: newItemData.payer,
+      splitWith: newItemData.splitWith,
       isPending: true,
       createdAt: Date.now()
     };
@@ -967,7 +1042,6 @@ export default function App() {
                   
                 } catch (error) {
                   console.error("Submission Error:", error);
-                  // Error handled silently as data is saved locally
                 }
               }}
               exchangeRate={exchangeRate}
