@@ -339,7 +339,7 @@ const ItineraryView = () => {
   const currentDayItems = itineraryData[activeDay] || [];
 
   return (
-    <div className="pb-24">
+    <div className="pb-32">
       <WeatherWidget />
       
       <div className="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-10 py-2 -mx-4 px-4 overflow-x-auto scrollbar-hide flex gap-3 mb-4">
@@ -557,16 +557,6 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
             <Plus size={24} /> 記一筆
           </button>
 
-          {/* Debug Link */}
-          {(!expenses.length && !loading) && (
-            <div className="text-center mb-4">
-              <a href={GOOGLE_FORM_ACTION_URL ? GOOGLE_FORM_ACTION_URL.replace('/formResponse', '/viewform') : '#'} target="_blank" rel="noreferrer" className="text-xs text-slate-300 underline flex items-center justify-center gap-1 hover:text-indigo-500">
-                <Bug size={10} /> 點我測試表單權限 (若失敗代表表單需開放)
-              </a>
-            </div>
-          )}
-
-          {/* List Header with Count */}
           <div className="flex items-center gap-2 mb-3 px-1 text-slate-500 text-xs font-bold">
             <span>共 {expenses.length} 筆資料</span>
             <span className="text-slate-300">|</span>
@@ -662,15 +652,19 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                 <button onClick={() => setShowFormModal(false)} className="bg-slate-100 p-2 rounded-full text-slate-500"><X size={20} /></button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="bg-slate-50 p-1.5 rounded-xl flex mb-2 border border-slate-100">
-                  <button type="button" onClick={() => setCurrencyMode('KRW')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${currencyMode === 'KRW' ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>₩ 韓元</button>
-                  <button type="button" onClick={() => setCurrencyMode('TWD')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${currencyMode === 'TWD' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>NT$ 台幣</button>
-                </div>
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 transition-colors focus-within:border-indigo-200 focus-within:bg-indigo-50/30">
                   <label className="text-xs font-bold text-slate-400 uppercase">金額 ({currencyMode})</label>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl text-slate-400 font-light">{currencyMode === 'KRW' ? '₩' : '$'}</span>
-                    <input type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full bg-transparent text-3xl font-bold text-slate-800 outline-none placeholder-slate-300" placeholder="0" autoFocus required />
+                    <input 
+                      type="number" 
+                      value={formData.amount} 
+                      onChange={(e) => setFormData({...formData, amount: e.target.value})} 
+                      className="w-full bg-transparent text-3xl font-bold text-slate-800 outline-none placeholder-slate-300" 
+                      placeholder="0" 
+                      // Removed autoFocus as per user request
+                      required 
+                    />
                   </div>
                   {currencyMode === 'KRW' && formData.amount && (
                     <div className="mt-2 pt-2 border-t border-slate-200/50 text-xs text-indigo-500 font-medium flex items-center gap-1">
@@ -679,6 +673,13 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                     </div>
                   )}
                 </div>
+                
+                {/* Currency Switcher (Moved Below Amount) */}
+                <div className="bg-slate-50 p-1.5 rounded-xl flex mb-2 border border-slate-100">
+                  <button type="button" onClick={() => setCurrencyMode('KRW')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${currencyMode === 'KRW' ? 'bg-white shadow text-slate-800' : 'text-slate-400'}`}>₩ 韓元</button>
+                  <button type="button" onClick={() => setCurrencyMode('TWD')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${currencyMode === 'TWD' ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>NT$ 台幣</button>
+                </div>
+
                 <div>
                   <label className="text-xs font-bold text-slate-500 ml-1">項目</label>
                   <input type="text" value={formData.item} onChange={(e) => setFormData({...formData, item: e.target.value})} className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 outline-none mt-1" placeholder="例如：烤肉" required />
@@ -912,7 +913,7 @@ const OthersView = () => {
           <p className="text-xs text-slate-400 text-center pt-1">使用固定匯率: {FIXED_EXCHANGE_RATE}</p>
         </div>
       </div>
-
+      
       <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200">
         <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
           <Languages size={24} /> 生存韓語
