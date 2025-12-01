@@ -36,7 +36,8 @@ import {
   UtensilsCrossed,
   Lock,
   Bug,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 
 // ==========================================
@@ -57,13 +58,16 @@ const APP_PASSWORD = getEnv("VITE_AUTH_PIN", "2026");
 // 🔧 設定區域
 // ==========================================
 
-// 1. Google 表單 Action URL
+// 1. 匯率設定 (在此處修改即可全站套用)
+const FIXED_EXCHANGE_RATE = 0.0236; 
+
+// 2. Google 表單 Action URL
 const GOOGLE_FORM_ACTION_URL = getEnv(
   "VITE_GOOGLE_FORM_ACTION_URL", 
   ""
 );
 
-// 2. Google 表單 Entry IDs
+// 3. Google 表單 Entry IDs
 const FORM_ENTRY_IDS = {
   ITEM: "entry.535523921",     
   AMOUNT: "entry.304377441",   
@@ -71,22 +75,22 @@ const FORM_ENTRY_IDS = {
   CATEGORY: "entry.1495061883" 
 };
 
-// 3. Google 試算表 CSV (記帳讀取用)
+// 4. Google 試算表 CSV (記帳讀取用)
 const DEFAULT_SHEET_CSV_URL = getEnv(
   "VITE_GOOGLE_SHEET_CSV_URL",
   ""
 );
 
-// 4. 行程表 CSV (行程讀取用)
+// 5. 行程表 CSV (行程讀取用)
 const ITINERARY_SHEET_CSV_URL = getEnv(
   "VITE_GOOGLE_SHEET_PLAN_CSV_URL", 
   ""
 );
 
-// 5. 成員名單
+// 6. 成員名單
 const MEMBERS = ['爸', '媽', '信', '屏', '樸'];
 
-// 6. 圖示對照
+// 7. 圖示對照
 const ICON_MAP = {
   'train': <Train size={18} />,
   'plane': <Plane size={18} />,
@@ -416,10 +420,8 @@ const ItineraryView = () => {
 const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate }) => {
   const [viewMode, setViewMode] = useState('list');
   const [showFormModal, setShowFormModal] = useState(false);
-  
-  // 設定預設為台幣
+  const [formData, setFormData] = useState({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS }); 
   const [currencyMode, setCurrencyMode] = useState('TWD');
-  const [formData, setFormData] = useState({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS });
   const [submitting, setSubmitting] = useState(false);
 
   // 拆帳計算
@@ -476,14 +478,13 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
     e.preventDefault();
     setSubmitting(true);
     
-    // 修正邏輯：統一存台幣
-    let finalAmount = parseFloat(formData.amount);
+    let amountToSave = parseFloat(formData.amount);
     
     if (currencyMode === 'KRW') {
-      // 如果輸入韓元，換算成台幣儲存
-      finalAmount = Math.round(finalAmount * exchangeRate);
+      // 輸入韓元 -> 轉成台幣儲存
+      amountToSave = Math.round(amountToSave * FIXED_EXCHANGE_RATE);
     } 
-    // 如果輸入台幣，維持原值
+    // 輸入台幣 -> 直接儲存
 
     let finalItemName = formData.item;
     if (formData.splitWith.length < MEMBERS.length) {
@@ -492,7 +493,7 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
 
     const submissionData = {
       item: finalItemName,
-      amount: finalAmount, // 永遠是台幣
+      amount: amountToSave,
       category: formData.category,
       payer: formData.payer,
       splitWith: formData.splitWith
@@ -504,13 +505,12 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
     setShowFormModal(false);
   };
 
-  // 總金額：因為資料庫是台幣，直接加總
+  // 總金額計算 (Expenses 都是台幣)
   const totalTWD = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-  // 韓元僅供參考，反推回去
-  const totalKRW = Math.round(totalTWD / exchangeRate);
+  const totalKRW = Math.round(totalTWD / FIXED_EXCHANGE_RATE);
 
   return (
-    <div className="pb-24 pt-2">
+    <div className="pb-32 pt-2">
       {/* Total Card */}
       <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl shadow-slate-200 mb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mt-10 -mr-10"></div>
@@ -557,6 +557,16 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
             <Plus size={24} /> 記一筆
           </button>
 
+          {/* Debug Link */}
+          {(!expenses.length && !loading) && (
+            <div className="text-center mb-4">
+              <a href={GOOGLE_FORM_ACTION_URL ? GOOGLE_FORM_ACTION_URL.replace('/formResponse', '/viewform') : '#'} target="_blank" rel="noreferrer" className="text-xs text-slate-300 underline flex items-center justify-center gap-1 hover:text-indigo-500">
+                <Bug size={10} /> 點我測試表單權限 (若失敗代表表單需開放)
+              </a>
+            </div>
+          )}
+
+          {/* List Header with Count */}
           <div className="flex items-center gap-2 mb-3 px-1 text-slate-500 text-xs font-bold">
             <span>共 {expenses.length} 筆資料</span>
             <span className="text-slate-300">|</span>
@@ -604,9 +614,8 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                     </div>
                   </div>
                   <div className="text-right">
-                    {/* item.amount 已經是台幣了，直接顯示 */}
                     <p className="font-bold text-slate-800">NT${item.amount.toLocaleString()}</p>
-                    <span className="text-xs text-slate-400">≈ ₩{Math.round(item.amount / exchangeRate).toLocaleString()}</span>
+                    <span className="text-xs text-slate-400">≈ ₩{Math.round(item.amount / FIXED_EXCHANGE_RATE).toLocaleString()}</span>
                   </div>
                 </div>
               ))
@@ -663,11 +672,10 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                     <span className="text-2xl text-slate-400 font-light">{currencyMode === 'KRW' ? '₩' : '$'}</span>
                     <input type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className="w-full bg-transparent text-3xl font-bold text-slate-800 outline-none placeholder-slate-300" placeholder="0" autoFocus required />
                   </div>
-                  {/* 輸入韓元時，提示會轉成台幣存 */}
                   {currencyMode === 'KRW' && formData.amount && (
                     <div className="mt-2 pt-2 border-t border-slate-200/50 text-xs text-indigo-500 font-medium flex items-center gap-1">
                       <ArrowLeftRight size={10} /> 
-                      自動換算約 NT${Math.round(formData.amount * exchangeRate).toLocaleString()} (將以此金額存入)
+                      自動換算約 NT${Math.round(formData.amount * FIXED_EXCHANGE_RATE).toLocaleString()} (將以此金額存入)
                     </div>
                   )}
                 </div>
@@ -736,34 +744,101 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
   );
 };
 
-// 4. Reminders View (保持不變)
+// 4. Reminders View (Editable Checklist)
 const RemindersView = () => {
+  // Pre-trip checklist
+  const [checklist, setChecklist] = useState([]);
+  const [newItemText, setNewItemText] = useState('');
+
+  // Default items
+  const DEFAULT_CHECKLIST = [
+    { id: 1, text: '護照', checked: true },
+    { id: 2, text: '漫遊/eSim', checked: true },
+    { id: 3, text: '轉接頭 (圓孔)', checked: false },
+    { id: 4, text: '牙刷牙膏', checked: false },
+  ];
+
+  // Load from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('trip_checklist');
+    if (saved) {
+      setChecklist(JSON.parse(saved));
+    } else {
+      setChecklist(DEFAULT_CHECKLIST);
+    }
+  }, []);
+
+  // Save to localStorage whenever checklist changes
+  useEffect(() => {
+    localStorage.setItem('trip_checklist', JSON.stringify(checklist));
+  }, [checklist]);
+
+  const toggleItem = (id) => {
+    setChecklist(prev => prev.map(item => 
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ));
+  };
+
+  const addItem = (e) => {
+    e.preventDefault();
+    if (!newItemText.trim()) return;
+    const newItem = {
+      id: Date.now(),
+      text: newItemText,
+      checked: false
+    };
+    setChecklist([...checklist, newItem]);
+    setNewItemText('');
+  };
+
+  const deleteItem = (id) => {
+    setChecklist(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Tips section (static)
   const tips = [
     { title: 'APP 必備', icon: <Map className="text-blue-500" />, desc: 'Naver Map (查路線)、Kakao T (叫車)、Wowpass。' },
-    { title: '排隊策略', icon: <Clock className="text-orange-500" />, desc: '熱門店若等超過30分，果斷換備案。' },
     { title: '洋蔥式穿搭', icon: <Thermometer className="text-red-500" />, desc: '室內暖氣強，厚外套+薄內裡最適合。' },
   ];
 
-  const checklist = [
-    { item: '護照', checked: true },
-    { item: 'K-ETA / 網卡', checked: true },
-    { item: '轉接頭 (圓孔)', checked: false },
-    { item: '牙刷牙膏', checked: false },
-  ];
-
   return (
-    <div className="pb-24 pt-2 space-y-6">
+    <div className="pb-32 pt-2 space-y-6">
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
         <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
           <CheckSquare className="text-indigo-600" size={20} /> 行前檢查
         </h3>
-        <div className="space-y-3">
-          {checklist.map((item, i) => (
-            <label key={i} className="flex items-center space-x-3 cursor-pointer p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
-              <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" defaultChecked={item.checked} />
-              <span className="text-slate-700 font-medium">{item.item}</span>
-            </label>
+        
+        <form onSubmit={addItem} className="flex gap-2 mb-4">
+          <input 
+            type="text" 
+            value={newItemText}
+            onChange={(e) => setNewItemText(e.target.value)}
+            placeholder="新增檢查項目..." 
+            className="flex-1 bg-slate-50 p-3 rounded-xl border border-slate-200 outline-none text-sm focus:border-indigo-400"
+          />
+          <button type="submit" className="bg-indigo-600 text-white p-3 rounded-xl">
+            <Plus size={18} />
+          </button>
+        </form>
+
+        <div className="space-y-2">
+          {checklist.map((item) => (
+            <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group">
+              <label className="flex items-center space-x-3 cursor-pointer flex-1">
+                <input 
+                  type="checkbox" 
+                  className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" 
+                  checked={item.checked} 
+                  onChange={() => toggleItem(item.id)}
+                />
+                <span className={`text-slate-700 font-medium ${item.checked ? 'line-through text-slate-400' : ''}`}>{item.text}</span>
+              </label>
+              <button onClick={() => deleteItem(item.id)} className="text-slate-300 hover:text-red-400 p-1">
+                <Trash2 size={16} />
+              </button>
+            </div>
           ))}
+          {checklist.length === 0 && <p className="text-center text-slate-400 text-xs py-2">清單是空的，新增一點東西吧！</p>}
         </div>
       </div>
 
@@ -789,8 +864,8 @@ const RemindersView = () => {
   );
 };
 
-// 5. Others View (保持不變)
-const OthersView = ({ exchangeRate, setExchangeRate }) => {
+// 5. Others View (Updated with Converter)
+const OthersView = () => {
   const phrases = [
     { ko: '안녕하세요', pro: 'An-nyeong-ha-se-yo', zh: '你好' },
     { ko: '감사합니다', pro: 'Kam-sa-ham-ni-da', zh: '謝謝' },
@@ -798,9 +873,46 @@ const OthersView = ({ exchangeRate, setExchangeRate }) => {
     { ko: '화장실 어디예요?', pro: 'Hwa-jang-sil eo-di-ye-yo?', zh: '洗手間在哪？' },
     { ko: '이거 주세요', pro: 'I-geo ju-se-yo', zh: '請給我這個' },
   ];
+  
+  // Currency Converter State
+  const [krwInput, setKrwInput] = useState('');
+  
+  const twdOutput = useMemo(() => {
+    if (!krwInput) return 0;
+    return parseFloat(krwInput) * FIXED_EXCHANGE_RATE;
+  }, [krwInput]);
 
   return (
-    <div className="pb-24 pt-2 space-y-6">
+    <div className="pb-32 pt-2 space-y-6">
+      {/* Currency Converter (New) */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+          <Calculator className="text-slate-400" size={20} /> 匯率計算機
+        </h3>
+        <div className="space-y-4">
+          <div className="relative">
+             <label className="text-xs font-bold text-slate-400 absolute left-4 top-3">韓元 (KRW)</label>
+             <input 
+               type="number" 
+               value={krwInput}
+               onChange={(e) => setKrwInput(e.target.value)}
+               className="w-full pt-8 pb-3 px-4 bg-slate-50 rounded-2xl text-2xl font-bold text-slate-800 outline-none border border-slate-200 focus:border-indigo-500"
+               placeholder="0"
+             />
+          </div>
+          <div className="flex justify-center text-slate-300">
+             <ArrowLeftRight className="rotate-90" />
+          </div>
+          <div className="relative">
+             <label className="text-xs font-bold text-slate-400 absolute left-4 top-3">約合台幣 (TWD)</label>
+             <div className="w-full pt-8 pb-3 px-4 bg-indigo-50 rounded-2xl text-2xl font-bold text-indigo-600 border border-indigo-100">
+               {twdOutput.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+             </div>
+          </div>
+          <p className="text-xs text-slate-400 text-center pt-1">使用固定匯率: {FIXED_EXCHANGE_RATE}</p>
+        </div>
+      </div>
+
       <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200">
         <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
           <Languages size={24} /> 生存韓語
@@ -819,30 +931,9 @@ const OthersView = ({ exchangeRate, setExchangeRate }) => {
           ))}
         </div>
       </div>
-
-      {/* Exchange Rate Setting */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-        <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
-          <Calculator className="text-slate-400" size={20} /> 匯率設定
-        </h3>
-        <div className="space-y-2">
-           <label className="text-xs font-bold text-slate-400">目前匯率 (1 韓元 = ? 台幣)</label>
-           <div className="flex items-center gap-3">
-             <input 
-                type="number" 
-                step="0.001"
-                value={exchangeRate} 
-                onChange={(e) => setExchangeRate(parseFloat(e.target.value))} 
-                className="w-full p-4 bg-slate-50 rounded-2xl text-lg font-bold text-slate-800 outline-none border border-slate-200 focus:border-indigo-500" 
-             />
-             <span className="text-sm font-medium text-slate-500 whitespace-nowrap">TWD/KRW</span>
-           </div>
-           <p className="text-xs text-slate-400 pt-1">此匯率將用於記帳時的台幣換算，以及總金額顯示。</p>
-        </div>
-      </div>
       
       <div className="text-center text-slate-300 text-xs py-4">
-        v2.6 Seoul Trip App
+        v2.7 Seoul Trip App
       </div>
     </div>
   );
@@ -858,7 +949,8 @@ export default function App() {
   // Lifted States
   const [expenses, setExpenses] = useState([]);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
-  const [exchangeRate, setExchangeRate] = useState(0.023); // Default rate
+  
+  // Exchange Rate is now a constant, no state needed
 
   const tabs = [
     { id: 'itinerary', label: '行程', icon: <MapPin size={24} /> },
@@ -889,7 +981,6 @@ export default function App() {
 
   // Global Expense Fetching Logic (Refined CSV Parser with Local Cache & Split Extraction)
   const fetchExpenses = async () => {
-    // 檢查是否設定了 CSV URL
     if (!DEFAULT_SHEET_CSV_URL) return;
 
     setLoadingExpenses(true);
@@ -921,12 +1012,9 @@ export default function App() {
                 let rawItem = idxItem > -1 ? row[idxItem] : row[1];
                 let splitWith = MEMBERS; // Default all
                 
-                // Look for #split:A,B tag
                 const splitMatch = rawItem.match(/#split:(.*)/);
                 if (splitMatch) {
                   splitWith = splitMatch[1].split(',').map(s => s.trim());
-                  // Remove tag from display text
-                  // rawItem = rawItem.replace(/#split:.*$/, '').trim(); // Optional: remove from display
                 }
 
                 fetchedData.push({
@@ -946,7 +1034,6 @@ export default function App() {
         }
       }
       
-      // Merge with LocalStorage pending items
       const pendingItems = JSON.parse(localStorage.getItem('pendingExpenses') || '[]');
       const now = Date.now();
       
@@ -961,7 +1048,6 @@ export default function App() {
       });
 
       localStorage.setItem('pendingExpenses', JSON.stringify(validPending));
-
       const combinedData = [...validPending, ...fetchedData.reverse()];
       setExpenses(combinedData);
 
@@ -976,7 +1062,7 @@ export default function App() {
     const newItem = {
       id: `local-${Date.now()}`, 
       timestamp: new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
-      desc: newItemData.item, // Contains the #split tag already
+      desc: newItemData.item, 
       amount: newItemData.amount,
       category: newItemData.category,
       author: newItemData.payer,
@@ -985,15 +1071,11 @@ export default function App() {
       createdAt: Date.now()
     };
     
-    // Save to Local Storage
     const currentPending = JSON.parse(localStorage.getItem('pendingExpenses') || '[]');
     localStorage.setItem('pendingExpenses', JSON.stringify([newItem, ...currentPending]));
-
-    // Update State
     setExpenses(prev => [newItem, ...prev]);
   };
 
-  // Initial Fetch
   useEffect(() => { 
     if (isAuthenticated) fetchExpenses(); 
   }, [isAuthenticated]);
@@ -1024,9 +1106,7 @@ export default function App() {
               loading={loadingExpenses} 
               onRefresh={fetchExpenses} 
               onAddExpense={async (data) => {
-                // Optimistic Update: Save locally first
                 handleAddExpenseLocal(data);
-
                 try {
                   const googleFormData = new FormData();
                   googleFormData.append(FORM_ENTRY_IDS.ITEM, data.item);
@@ -1044,16 +1124,11 @@ export default function App() {
                   console.error("Submission Error:", error);
                 }
               }}
-              exchangeRate={exchangeRate}
+              exchangeRate={FIXED_EXCHANGE_RATE} // 使用固定匯率常數
             />
           )}
           {activeTab === 'reminders' && <RemindersView />}
-          {activeTab === 'others' && (
-            <OthersView 
-              exchangeRate={exchangeRate} 
-              setExchangeRate={setExchangeRate} 
-            />
-          )}
+          {activeTab === 'others' && <OthersView />}
         </main>
 
         <nav className="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-200 pb-safe pt-2 px-6 flex justify-between items-center z-50">
