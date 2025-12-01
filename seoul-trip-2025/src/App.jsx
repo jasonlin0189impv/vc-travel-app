@@ -1132,24 +1132,32 @@ export default function App() {
           {activeTab === 'others' && <OthersView />}
         </main>
 
-        <nav className="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-200 pb-safe pt-2 px-6 flex justify-between items-center z-50">
+        {/* 修改後的導航列：懸浮樣式 */}
+        <nav className="fixed bottom-8 left-1/2 transform -translate-x-1/2 w-[90%] max-w-[20rem] bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-2xl shadow-slate-200/50 rounded-3xl py-1 px-2 flex justify-around items-center z-50">
           {tabs.map((tab) => (
             <button 
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all duration-300 ${
+              className={`flex flex-col items-center justify-center w-16 h-14 rounded-2xl transition-all duration-300 relative ${
                 activeTab === tab.id 
                   ? 'text-indigo-600' 
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50/50'
               }`}
             >
+              {/* 這裡加一個背景光暈讓選中狀態更明顯 */}
+              {activeTab === tab.id && (
+                <div className="absolute inset-0 bg-indigo-50 rounded-2xl -z-10 scale-75 animate-fade-in"></div>
+              )}
+              
               {React.cloneElement(tab.icon, { 
-                size: 24, 
+                size: 22, //稍微縮小一點圖示讓比例更好看
                 strokeWidth: activeTab === tab.id ? 2.5 : 2,
                 className: activeTab === tab.id ? 'transform scale-110 transition-transform' : ''
               })}
+              
+              {/* 文字改小一點或不顯示，這裡保留顯示但縮小間距 */}
               {activeTab === tab.id && (
-                <span className="text-[10px] font-bold mt-1 animate-fade-in">{tab.label}</span>
+                <span className="text-[10px] font-bold mt-0.5 animate-fade-in">{tab.label}</span>
               )}
             </button>
           ))}
