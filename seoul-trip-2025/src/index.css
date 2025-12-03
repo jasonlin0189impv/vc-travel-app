@@ -4,7 +4,12 @@
 
 /* 全局樣式設定，優化手機體驗 */
 body {
-  background-color: #f8fafc; /* bg-slate-50 */
-  overscroll-behavior-y: none; /* 防止下拉重整 */
+  /* 這裡改為新的基底色 #f7eaed (淡粉雪) */
+  background-color: #f7eaed; 
+  
+  /* 防止下拉重整 (iOS Safari 彈性效果露出的底色) */
+  overscroll-behavior-y: none; 
+  
+  /* 移除點擊時的藍色高亮框 */
   -webkit-tap-highlight-color: transparent;
 }
