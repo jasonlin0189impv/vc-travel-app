@@ -248,30 +248,37 @@ const WeatherWidget = () => {
   };
 
   if (loading) return (
-    <div className={`w-full h-32 bg-[#c7dbcf]/40 rounded-[2rem] animate-pulse mb-6`}></div>
+    <div className={`w-full h-40 bg-[#c7dbcf]/40 rounded-[2.5rem] animate-pulse mb-8`}></div>
   );
 
   return (
-    <div className={`${UI.cardLarge} rounded-[2rem] p-6 mb-8 flex items-center justify-between relative overflow-hidden`}>
-      <div className={`absolute right-0 top-0 w-32 h-32 bg-white/20 rounded-full -mr-8 -mt-8 z-0`}></div>
+    <div className={`${UI.cardLarge} rounded-[2.5rem] p-8 mb-8 flex items-center justify-between relative overflow-hidden`}>
+      {/* 背景裝飾球 */}
+      <div className={`absolute right-0 top-0 w-40 h-40 bg-white/20 rounded-full -mr-10 -mt-10 z-0`}></div>
       
-      <div className="z-10">
-        <div className={`flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-widest mb-2`}>
+      <div className="z-10 flex flex-col justify-center">
+        <div className={`flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-widest mb-1`}>
           <MapPin size={12} />
           SEOUL, KOREA
         </div>
-        <div className="flex items-baseline gap-3">
-           <span className={`text-5xl font-black text-white tracking-tighter`}>
+        
+        {/* 溫度區塊 */}
+        <div>
+           <span className={`text-6xl font-black text-white tracking-tighter leading-none`}>
              {Math.round(weather?.current?.temperature_2m)}°
            </span>
-           <div className={`flex flex-col text-xs font-bold text-white/90`}>
-             <span>H:{Math.round(weather?.daily?.temperature_2m_max[0])}°</span>
-             <span>L:{Math.round(weather?.daily?.temperature_2m_min[0])}°</span>
+           {/* HL 並排顯示 */}
+           <div className={`flex items-center gap-3 text-sm font-bold text-white/90 mt-2`}>
+             <span className="flex items-center gap-1">H:{Math.round(weather?.daily?.temperature_2m_max[0])}°</span>
+             <span className="opacity-50">|</span>
+             <span className="flex items-center gap-1">L:{Math.round(weather?.daily?.temperature_2m_min[0])}°</span>
            </div>
         </div>
       </div>
-      <div className={`z-10 p-3 bg-white/20 rounded-2xl border border-white/10`}>
-         {React.cloneElement(getWeatherIcon(weather?.current?.weather_code), { size: 32 })}
+
+      {/* 圖示區塊：放大尺寸並增加容器大小 */}
+      <div className={`z-10 p-5 bg-white/20 rounded-[2rem] border border-white/10 shadow-sm backdrop-blur-sm`}>
+         {React.cloneElement(getWeatherIcon(weather?.current?.weather_code), { size: 56, strokeWidth: 2 })}
       </div>
     </div>
   );
@@ -712,8 +719,6 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate,
     </div>
   );
 };
-
-// ... existing code for RemindersView, OthersView, App ...
 
 const RemindersView = () => {
   const [checklist, setChecklist] = useState([]);
