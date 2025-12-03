@@ -402,21 +402,33 @@ const ItineraryView = () => {
         <div className="fixed inset-0 z-[100] flex items-end justify-center">
           <div className={`absolute inset-0 bg-[#5f768f]/30 backdrop-blur-sm animate-fade-in`} onClick={() => setSelectedItem(null)}></div>
           <div className={`bg-[#f7eaed] w-full max-w-md rounded-t-[2.5rem] shadow-2xl shadow-[#5f768f]/20 relative z-10 overflow-hidden h-[80vh] flex flex-col animate-slide-up`}>
+            
             <div className="w-full flex justify-center pt-4 pb-2" onClick={() => setSelectedItem(null)}>
               <div className={`w-12 h-1.5 bg-[#c7dbcf] rounded-full`}></div>
             </div>
+            
             <div className="px-8 pt-8 pb-6">
-              <div className={`inline-flex items-center gap-2 bg-[#c7dbcf] text-[#5f768f] px-4 py-2 rounded-full text-xs font-bold mb-6`}>
-                <Clock size={14} />
-                {selectedItem.time}
+              {/* 調整：將時間標籤與關閉按鈕並排 */}
+              <div className="flex justify-between items-center mb-6">
+                <div className={`inline-flex items-center gap-2 bg-[#c7dbcf] text-[#5f768f] px-4 py-2 rounded-full text-xs font-bold`}>
+                  <Clock size={14} />
+                  {selectedItem.time}
+                </div>
+                
+                {/* 小巧的關閉按鈕 */}
+                <button 
+                  onClick={() => setSelectedItem(null)} 
+                  className="p-2 bg-[#efc0c2] text-white rounded-full shadow-md shadow-[#efc0c2]/30 hover:bg-[#e5b0b2] transition-all active:scale-90"
+                >
+                  <X size={18} />
+                </button>
               </div>
+
               <h3 className={`text-4xl font-black ${UI.textMain} leading-tight`}>{selectedItem.title}</h3>
             </div>
-            <div className="flex-grow overflow-y-auto px-8 pb-8">
+            {/* 底部 Padding */}
+            <div className="flex-grow overflow-y-auto px-8 pb-20">
               <div className={`prose ${UI.textMain} leading-loose whitespace-pre-line text-lg`}>{selectedItem.desc}</div>
-            </div>
-            <div className={`p-6 border-t border-[#c7dbcf] pb-safe`}>
-              <button onClick={() => setSelectedItem(null)} className={`w-full ${UI.btnPrimary} py-4 rounded-2xl text-lg`}>關閉</button>
             </div>
           </div>
         </div>
