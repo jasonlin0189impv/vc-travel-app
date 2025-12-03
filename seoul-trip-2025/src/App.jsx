@@ -29,7 +29,8 @@ import {
   Bed,
   Plane,
   Trash2,
-  Lightbulb
+  Lightbulb,
+  Check
 } from 'lucide-react';
 
 // ==========================================
@@ -41,7 +42,7 @@ const THEME = {
   base: "#f7eaed",    // 基底色 (淡粉雪)
   large: "#efc0c2",   // 大區塊 (乾燥玫瑰)
   small: "#c7dbcf",   // 小區塊 (薄荷灰綠)
-  text: "#5f768f",    // 文字色 (深霧藍 - Updated from #93a9c0)
+  text: "#5f768f",    // 文字色 (深霧藍)
   white: "#ffffff",
 };
 
@@ -51,11 +52,9 @@ const UI = {
   bgMain: "bg-[#f7eaed]",
   
   // 卡片風格 (小區塊應用)
-  // 使用薄荷綠作為卡片背景，稍微加一點透明度增加通透感
   cardSmall: "bg-[#c7dbcf]/40 backdrop-blur-sm border border-[#c7dbcf] shadow-sm",
   
   // 大區塊風格 (強調區塊)
-  // 使用乾燥玫瑰粉，搭配白色文字以增加對比
   cardLarge: "bg-[#efc0c2] text-white shadow-lg shadow-[#efc0c2]/30",
   
   // 輸入框
@@ -77,9 +76,9 @@ const UI = {
 
   // 圖示配色
   icon: {
-    primary: "#efc0c2", // Pink
-    secondary: "#c7dbcf", // Green
-    text: "#5f768f", // Blue (Updated)
+    primary: "#efc0c2", 
+    secondary: "#c7dbcf",
+    text: "#5f768f",
     white: "#ffffff"
   }
 };
@@ -102,7 +101,7 @@ const MEMBERS = ['爸', '媽', '信', '屏', '樸'];
 
 const GOOGLE_FORM_ACTION_URL = getEnv("VITE_GOOGLE_FORM_ACTION_URL", "");
 const DEFAULT_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_CSV_URL", "");
-const ITINERARY_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", "");
+const ITINERARY_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", "https://docs.google.com/spreadsheets/d/e/2PACX-1vQDFKZ-Uswino9CFIF3R4f4bRyBmLYgHjUAVDfRXP_0rDz7SVPPV8MNaDkyb7Ai979ZLgITNRRu_N9K/pub?gid=0&single=true&output=csv");
 
 const FORM_ENTRY_IDS = {
   ITEM: "entry.535523921",     
@@ -187,7 +186,6 @@ const LoginView = ({ onLogin }) => {
 
   return (
     <div className={`min-h-screen ${UI.bgMain} flex flex-col items-center justify-center p-6 ${UI.textMain}`}>
-      {/* 裝飾背景球 */}
       <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-[#c7dbcf]/40 rounded-full blur-3xl"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-[#efc0c2]/30 rounded-full blur-3xl"></div>
 
@@ -286,7 +284,7 @@ const ItineraryView = () => {
   const [loading, setLoading] = useState(false);
 
   const dates = { 1: '1/15', 2: '1/16', 3: '1/17', 4: '1/18', 5: '1/19' };
-  const FALLBACK_DATA = { 1: [{ time: 'INFO', title: '請連結 Google Sheet', icon: 'map', desc: '目前無行程資料，請確認 CSV 連結' }] };
+  const FALLBACK_DATA = { 1: [{ time: 'INFO', title: '請連結 Google Sheet', icon: 'map', desc: '目前無行程資料' }] };
 
   useEffect(() => {
     const fetchItinerary = async () => {
@@ -420,7 +418,7 @@ const ItineraryView = () => {
   );
 };
 
-const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate }) => {
+const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate, onDeleteExpense }) => {
   const [viewMode, setViewMode] = useState('list');
   const [showFormModal, setShowFormModal] = useState(false);
   const [formData, setFormData] = useState({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS }); 
@@ -457,8 +455,19 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
     });
   };
 
+  const handleSelectAll = () => {
+    setFormData(prev => ({
+      ...prev,
+      splitWith: prev.splitWith.length === MEMBERS.length ? [] : MEMBERS
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.splitWith.length === 0) {
+      alert("請至少選擇一位分攤對象");
+      return;
+    }
     setSubmitting(true);
     let amountToSave = parseFloat(formData.amount);
     if (currencyMode === 'KRW') amountToSave = Math.round(amountToSave * FIXED_EXCHANGE_RATE);
@@ -477,12 +486,23 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
     setShowFormModal(false);
   };
 
+  const handleDeleteClick = (expense) => {
+    if (expense.isPending) {
+      // 這是本地暫存的，可以直接刪除
+      if (window.confirm(`確定要刪除這筆暫存記帳嗎？\n"${expense.desc.split('#')[0]}"`)) {
+        onDeleteExpense(expense.id);
+      }
+    } else {
+      // 這是已同步的，不能直接刪除
+      alert("⚠️ 無法直接刪除已同步的資料\n\n這筆資料已經寫入 Google Sheet。\n請前往 Google Sheet 手動刪除該行資料。");
+    }
+  };
+
   const totalTWD = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
   const totalKRW = Math.round(totalTWD / FIXED_EXCHANGE_RATE);
 
   return (
     <div className="pb-32 pt-2">
-      {/* 總支出卡片：大區塊 (粉色) */}
       <div className={`${UI.cardLarge} rounded-[2.5rem] p-8 mb-8 relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/20 rounded-full -mt-10 -mr-10"></div>
         <div className="relative z-10">
@@ -551,9 +571,18 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-black ${UI.textMain}`}>${item.amount.toLocaleString()}</p>
-                    <span className={`text-xs font-bold ${UI.textSub}`}>₩{Math.round(item.amount / FIXED_EXCHANGE_RATE).toLocaleString()}</span>
+                  <div className="flex flex-col items-end gap-2">
+                    <div>
+                        <p className={`font-black ${UI.textMain} text-right`}>${item.amount.toLocaleString()}</p>
+                        <span className={`text-xs font-bold ${UI.textSub} block text-right`}>₩{Math.round(item.amount / FIXED_EXCHANGE_RATE).toLocaleString()}</span>
+                    </div>
+                    {/* 刪除按鈕 */}
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); }}
+                        className={`p-1.5 rounded-lg hover:bg-white/50 transition-colors ${item.isPending ? 'text-[#efc0c2]' : 'text-[#5f768f]/30'}`}
+                    >
+                        <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               ))
@@ -574,7 +603,7 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                       <p className={`text-xs ${UI.textSub} font-medium`}>已墊付 ${p.paid.toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className={`text-base font-black ${p.net >= 0 ? "text-[#efc0c2]" : "text-[#5f768f]"}`}>
+                  <div className={`text-base font-black ${p.net >= 0 ? "text-[#efc0c2]" : "text-[#93a9c0]"}`}>
                     {p.net >= 0 ? `+${Math.round(p.net).toLocaleString()}` : `-${Math.round(Math.abs(p.net)).toLocaleString()}`}
                   </div>
                 </div>
@@ -634,13 +663,44 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
                    </div>
                 </div>
 
+                {/* 分攤對象介面優化 */}
                 <div>
-                  <label className={`text-xs font-bold ${UI.textMain} ml-2 mb-3 block`}>分攤對象</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {MEMBERS.map(m => (
-                      <button key={m} type="button" onClick={() => toggleSplitMember(m)} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border-2 ${formData.splitWith.includes(m) ? `bg-[#efc0c2] border-[#efc0c2] text-white shadow-sm` : `bg-[#c7dbcf]/30 border-transparent ${UI.textMain}`}`}>{m}</button>
-                    ))}
-                    <button type="button" onClick={() => setFormData(prev => ({...prev, splitWith: MEMBERS}))} className={`px-3 py-2 rounded-xl text-xs font-bold ${UI.textMain} bg-[#c7dbcf]/30 ml-auto`}>All</button>
+                  <div className="flex justify-between items-center mb-3">
+                    <label className={`text-xs font-bold ${UI.textMain} ml-2 block`}>分攤對象</label>
+                    <button 
+                        type="button" 
+                        onClick={handleSelectAll} 
+                        className={`text-xs font-bold text-[#efc0c2] px-2 py-1 rounded hover:bg-[#efc0c2]/10 transition-colors`}
+                    >
+                        {formData.splitWith.length === MEMBERS.length ? '取消全選' : '全選'}
+                    </button>
+                  </div>
+                  
+                  {/* 使用 Grid 佈局讓頭像單行排列 */}
+                  <div className="grid grid-cols-5 gap-2">
+                    {MEMBERS.map(m => {
+                        const isSelected = formData.splitWith.includes(m);
+                        return (
+                            <button
+                                key={m}
+                                type="button"
+                                onClick={() => toggleSplitMember(m)}
+                                className={`
+                                    relative flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-300
+                                    ${isSelected 
+                                        ? `bg-[#efc0c2] text-white shadow-md transform scale-105 font-bold` 
+                                        : `bg-white/50 text-[#5f768f]/60 border-2 border-transparent hover:border-[#c7dbcf]`}
+                                `}
+                            >
+                                <span className="text-sm">{m}</span>
+                                {isSelected && (
+                                    <div className="absolute -top-1 -right-1 bg-white text-[#efc0c2] rounded-full p-0.5 shadow-sm">
+                                        <Check size={8} strokeWidth={4} />
+                                    </div>
+                                )}
+                            </button>
+                        );
+                    })}
                   </div>
                 </div>
 
@@ -652,6 +712,8 @@ const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate 
     </div>
   );
 };
+
+// ... existing code for RemindersView, OthersView, App ...
 
 const RemindersView = () => {
   const [checklist, setChecklist] = useState([]);
@@ -754,7 +816,7 @@ const OthersView = () => {
              <label className={`text-xs font-bold text-white/80 absolute left-5 top-4`}>TWD (Approx)</label>
              <div className={`w-full pt-10 pb-4 px-5 bg-white/40 rounded-3xl text-3xl font-black text-white border-2 border-white/20 shadow-sm`}>{twdOutput.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
           </div>
-          <p className={`text-xs text-white/70 text-center font-bold mt-2`}>Rate: {FIXED_EXCHANGE_RATE}</p>
+          <p className={`text-xs text-white/70 text-center font-bold mt-2`}>固定匯率: {FIXED_EXCHANGE_RATE}</p>
         </div>
       </div>
       
@@ -837,6 +899,17 @@ export default function App() {
     setExpenses(prev => [newItem, ...prev]);
   };
 
+  // 新增刪除功能
+  const handleDeleteExpense = (id) => {
+    // 過濾掉要刪除的項目
+    const currentPending = JSON.parse(localStorage.getItem('pendingExpenses') || '[]');
+    const newPending = currentPending.filter(item => item.id !== id);
+    localStorage.setItem('pendingExpenses', JSON.stringify(newPending));
+    
+    // 更新 UI 狀態
+    setExpenses(prev => prev.filter(item => item.id !== id));
+  };
+
   useEffect(() => { if (isAuthenticated) fetchExpenses(); }, [isAuthenticated]);
 
   if (!isAuthenticated) return <LoginView onLogin={() => { setIsAuthenticated(true); localStorage.setItem('tripAppAuth', 'true'); }} />;
@@ -854,15 +927,15 @@ export default function App() {
 
         <main className="px-5">
           {activeTab === 'itinerary' && <ItineraryView />}
-          {activeTab === 'expense' && <ExpenseView expenses={expenses} loading={loadingExpenses} onRefresh={fetchExpenses} onAddExpense={async (data) => {
-              handleAddExpenseLocal(data);
-              if (GOOGLE_FORM_ACTION_URL) {
-                const fd = new FormData();
-                fd.append(FORM_ENTRY_IDS.ITEM, data.item); fd.append(FORM_ENTRY_IDS.AMOUNT, data.amount);
-                fd.append(FORM_ENTRY_IDS.CATEGORY, data.category); fd.append(FORM_ENTRY_IDS.PAYER, data.payer);
-                try { await fetch(GOOGLE_FORM_ACTION_URL, { method: 'POST', body: fd, mode: 'no-cors' }); } catch(e){}
-              }
-            }} exchangeRate={FIXED_EXCHANGE_RATE} />
+          {activeTab === 'expense' && <ExpenseView expenses={expenses} loading={loadingExpenses} onRefresh={fetchExpenses} onDeleteExpense={handleDeleteExpense} onAddExpense={async (data) => {
+                handleAddExpenseLocal(data);
+                if (GOOGLE_FORM_ACTION_URL) {
+                  const fd = new FormData();
+                  fd.append(FORM_ENTRY_IDS.ITEM, data.item); fd.append(FORM_ENTRY_IDS.AMOUNT, data.amount);
+                  fd.append(FORM_ENTRY_IDS.CATEGORY, data.category); fd.append(FORM_ENTRY_IDS.PAYER, data.payer);
+                  try { await fetch(GOOGLE_FORM_ACTION_URL, { method: 'POST', body: fd, mode: 'no-cors' }); } catch(e){}
+                }
+              }} exchangeRate={FIXED_EXCHANGE_RATE} />
           }
           {activeTab === 'reminders' && <RemindersView />}
           {activeTab === 'others' && <OthersView />}
