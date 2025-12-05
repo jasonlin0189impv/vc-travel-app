@@ -101,7 +101,7 @@ const MEMBERS = ['爸', '媽', '信', '屏', '樸'];
 
 const GOOGLE_FORM_ACTION_URL = getEnv("VITE_GOOGLE_FORM_ACTION_URL", "");
 const DEFAULT_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_CSV_URL", "");
-const ITINERARY_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", "https://docs.google.com/spreadsheets/d/e/2PACX-1vQDFKZ-Uswino9CFIF3R4f4bRyBmLYgHjUAVDfRXP_0rDz7SVPPV8MNaDkyb7Ai979ZLgITNRRu_N9K/pub?gid=0&single=true&output=csv");
+const ITINERARY_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", "");
 
 const FORM_ENTRY_IDS = {
   ITEM: "entry.535523921",     
