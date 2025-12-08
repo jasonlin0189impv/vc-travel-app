@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// 注意：請確保 SeoulTripApp.jsx 檔案中有將這些元件 export 出來
 import App, { 
   smartParseCSV, 
   LoginView, 
@@ -50,7 +51,9 @@ describe('LoginView', () => {
     
     const input = screen.getByPlaceholderText('••••');
     fireEvent.change(input, { target: { value: '0000' } }); // Wrong PIN
-    fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }));
+    // 尋找按鈕 (新版按鈕文字仍為 "進入旅程")
+    const submitBtn = screen.getByRole('button', { name: /進入旅程/i });
+    fireEvent.submit(submitBtn.closest('form')); // 或是直接 click button
     
     expect(screen.getByText(/密碼錯誤/i)).toBeInTheDocument();
     expect(mockLogin).not.toHaveBeenCalled();
@@ -63,7 +66,8 @@ describe('LoginView', () => {
     
     const input = screen.getByPlaceholderText('••••');
     fireEvent.change(input, { target: { value: '2026' } });
-    fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }));
+    const submitBtn = screen.getByRole('button', { name: /進入旅程/i });
+    fireEvent.submit(submitBtn.closest('form'));
     
     expect(mockLogin).toHaveBeenCalled();
   });
@@ -77,7 +81,8 @@ describe('OthersView (Currency Converter)', () => {
     const krwInput = screen.getByPlaceholderText('0');
     fireEvent.change(krwInput, { target: { value: '10000' } });
     
-    // 10000 * 0.0236 = 236
+    // 驗證 TWD 輸出結果 (10000 * 0.0236 = 236)
+    // 這裡我們直接查找顯示結果的元素
     expect(screen.getByText('236')).toBeInTheDocument();
   });
 });
@@ -137,18 +142,86 @@ describe('ExpenseView Integration', () => {
       <ExpenseView 
         expenses={[]} 
         loading={false} 
-        onAddExpense={mockOnAdd} 
+        onAddExpense={mockOnAdd}
+        onDeleteExpense={mockOnDelete}
+        onRefresh={mockOnRefresh}
         exchangeRate={0.0236} 
       />
     );
 
-    // 預設是列表模式
+    // 預設是列表模式，應該看得到 "記一筆" 按鈕
     expect(screen.getByText(/記一筆/i)).toBeInTheDocument();
 
     // 切換到拆帳模式
     fireEvent.click(screen.getByText(/拆帳計算/i));
+    
+    // "記一筆" 按鈕應該消失
     expect(screen.queryByText(/記一筆/i)).not.toBeInTheDocument();
+    // 應該看到結算相關文字
     expect(screen.getByText(/結算狀況/i)).toBeInTheDocument();
+  });
+
+  it('should calculate complex splits correctly', () => {
+    // 模擬複雜的記帳情境
+    const expenses = [
+      {
+        id: '1',
+        desc: '晚餐', // 補上 desc 欄位
+        category: '食物',
+        amount: 1000,
+        author: '爸',
+        // 假設所有人 (5人) 分攤，每人 -200
+        // 爸付 1000: 淨額 +1000 - 200 = +800
+        splitWith: ['爸', '媽', '信', '屏', '樸'] 
+      },
+      {
+        id: '2',
+        desc: '計程車', // 補上 desc 欄位
+        category: '交通',
+        amount: 500,
+        author: '信',
+        // 只有信跟屏 (2人) 分攤，每人 -250
+        // 信付 500: 淨額 +500 - 250 = +250
+        // 屏: -250
+        splitWith: ['信', '屏']
+      }
+    ];
+
+    // 預期結果:
+    // 爸: +800
+    // 媽: -200
+    // 信: -200 (第一筆) + 250 (第二筆) = +50
+    // 屏: -200 (第一筆) - 250 (第二筆) = -450
+    // 樸: -200
+
+    render(
+      <ExpenseView 
+        expenses={expenses} 
+        loading={false} 
+        onAddExpense={mockOnAdd}
+        onDeleteExpense={mockOnDelete}
+        onRefresh={mockOnRefresh}
+        exchangeRate={1} // 設為 1 方便計算
+      />
+    );
+
+    // 切換到拆帳模式
+    fireEvent.click(screen.getByText(/拆帳計算/i));
+
+    // 驗證數值顯示 (使用正則表達式來匹配可能包含千分位符號的文字)
+    
+    // 爸應收 +800
+    expect(screen.getByText('+800')).toBeInTheDocument();
+    
+    // 信應收 +50
+    expect(screen.getByText('+50')).toBeInTheDocument();
+    
+    // 屏應付 -450
+    expect(screen.getByText('-450')).toBeInTheDocument();
+    
+    // 媽和樸都是應付 -200，應該出現兩次
+    const minus200 = screen.getAllByText('-200');
+    expect(minus200).toHaveLength(2);
   });
 });
 
@@ -164,11 +237,18 @@ describe('App Navigation', () => {
       return null;
     });
     
-    // Mock fetch for weather/sheets
+    // Mock fetch for weather/sheets/gas
     global.fetch = vi.fn(() => 
       Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ current: { temperature_2m: 20 }, daily: { temperature_2m_max: [25], temperature_2m_min: [15] } }),
+        json: () => Promise.resolve({ 
+            // Mock Weather Data
+            current: { temperature_2m: 20, weather_code: 0 }, 
+            daily: { temperature_2m_max: [25], temperature_2m_min: [15] },
+            // Mock GAS Response (Standard structure)
+            status: 'success',
+            data: [] 
+        }),
         text: () => Promise.resolve('Day,Time,Title,Desc\n1,10:00,Test,Desc')
       })
     );
@@ -182,18 +262,19 @@ describe('App Navigation', () => {
     render(<App />);
     
     // 預設顯示行程頁面
-    expect(await screen.findByText('SEOUL, KOREA')).toBeInTheDocument();
+    // 修正：新版 WeatherWidget 只顯示 "SEOUL"，不顯示 ", KOREA"
+    expect(await screen.findByText('SEOUL')).toBeInTheDocument();
     
     // 切換到其他 (Others) 頁面
-    // 這裡我們需要找到對應的 icon 或按鈕。由於 lucid-react icons 渲染為 svg，我們可以透過測試 ID 或 aria-label，但這裡我們簡單用文字判斷頁面內容變化
+    // 使用 navigation role 來限縮範圍，避免抓到頁面內其他的按鈕
+    const navBar = screen.getByRole('navigation');
+    const buttons = within(navBar).getAllByRole('button');
     
-    // 模擬點擊導航列的最後一個按鈕 (Others)
-    // 注意：實際測試中建議給按鈕加 data-testid
-    const buttons = screen.getAllByRole('button');
-    const othersTabBtn = buttons[buttons.length - 1]; // 假設最後一個是 Others
+    // 假設最後一個按鈕是 Others (Tabs 順序: Itinerary, Expense, Reminders, Others)
+    const othersTabBtn = buttons[buttons.length - 1]; 
     fireEvent.click(othersTabBtn);
 
-    // 確認生存韓語出現
+    // 確認生存韓語出現 (代表切換成功)
     expect(await screen.findByText('生存韓語')).toBeInTheDocument();
   });
 });

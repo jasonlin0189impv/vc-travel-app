@@ -30,11 +30,21 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install and Build
+      # 1. 先安裝依賴
+      - name: Install Dependencies
         working-directory: ./seoul-trip-2025
-        run: |
-          npm install
-          npm run build
+        run: npm install
+
+      # 2. 執行單元測試 (新增這一段)
+      # 如果測試失敗，流程會在這裡中止，不會進行打包和部署
+      - name: Run Unit Tests
+        working-directory: ./seoul-trip-2025
+        run: npm run test
+
+      # 3. 測試通過後才打包
+      - name: Build
+        working-directory: ./seoul-trip-2025
+        run: npm run build
         env:
           VITE_AUTH_PIN: ${{ secrets.VITE_AUTH_PIN }}
           VITE_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_GOOGLE_FORM_ACTION_URL }}

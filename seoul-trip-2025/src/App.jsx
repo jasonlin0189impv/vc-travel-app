@@ -34,7 +34,7 @@ import {
   Edit2,
   Save,
   Loader2,
-  AlertTriangle // 新增警告圖示
+  AlertTriangle 
 } from 'lucide-react';
 
 const { useState, useEffect, useMemo } = React;
@@ -156,7 +156,7 @@ const apiRequest = async (action, payload = {}) => {
   }
 };
 
-const smartParseCSV = (csvText) => {
+export const smartParseCSV = (csvText) => {
   const rows = [];
   let currentRow = [];
   let currentCell = '';
@@ -183,7 +183,7 @@ const smartParseCSV = (csvText) => {
 // 📱 COMPONENTS
 // ==========================================
 
-const LoginView = ({ onLogin }) => {
+export const LoginView = ({ onLogin }) => {
   const [input, setInput] = useState('');
   const [error, setError] = useState(false);
   const handleSubmit = (e) => {
@@ -207,79 +207,153 @@ const LoginView = ({ onLogin }) => {
   );
 };
 
-const WeatherWidget = () => {
+export const WeatherWidget = ({ onRefresh, isRefreshing }) => {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchWeather = async () => {
       try {
-        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FSeoul&forecast_days=1');
-        setWeather(await response.json());
-      } catch (error) { console.error(error); } finally { setLoading(false); }
+        const response = await fetch(
+          'https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FSeoul&forecast_days=1'
+        );
+        const data = await response.json();
+        setWeather(data);
+      } catch (error) {
+        console.error("Failed to fetch weather", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchWeather();
   }, []);
-  const getWeatherIcon = () => <CloudSun className="text-white" />;
-  if (loading) return <div className={`w-full h-32 bg-[#c7dbcf]/40 rounded-[2rem] animate-pulse mb-6`}></div>;
+
+  const getWeatherIcon = (code) => {
+    return <CloudSun className="text-white" />;
+  };
+
+  if (loading) return (
+    <div className={`w-full h-32 bg-[#c7dbcf]/40 rounded-[2rem] animate-pulse mb-6`}></div>
+  );
+
   return (
     <div className={`${UI.cardLarge} rounded-[2.5rem] p-7 mb-6 flex items-center justify-between relative overflow-hidden`}>
       <div className={`absolute right-0 top-0 w-48 h-48 bg-white/20 rounded-full -mr-12 -mt-12 z-0`}></div>
+      
       <div className="z-10 flex flex-col justify-center">
-        <div className={`flex items-center gap-1.5 text-white/90 text-xs font-bold uppercase tracking-widest mb-1`}><MapPin size={12} /> SEOUL</div>
-        <span className={`text-7xl font-black text-white tracking-tighter leading-[0.9]`}>{Math.round(weather?.current?.temperature_2m)}°</span>
-        <div className={`flex gap-3 text-sm font-bold text-white/90 mt-2`}><span>H:{Math.round(weather?.daily?.temperature_2m_max[0])}°</span><span className="opacity-60">|</span><span>L:{Math.round(weather?.daily?.temperature_2m_min[0])}°</span></div>
+        <div className={`flex items-center gap-1.5 text-white/90 text-xs font-bold uppercase tracking-widest mb-1`}>
+          <MapPin size={12} />
+          SEOUL
+        </div>
+        <span className={`text-7xl font-black text-white tracking-tighter leading-[0.9]`}>
+          {Math.round(weather?.current?.temperature_2m)}°
+        </span>
+        <div className={`flex gap-3 text-sm font-bold text-white/90 mt-2`}>
+          <span>H:{Math.round(weather?.daily?.temperature_2m_max[0])}°</span>
+          <span className="opacity-60">|</span>
+          <span>L:{Math.round(weather?.daily?.temperature_2m_min[0])}°</span>
+        </div>
       </div>
-      <div className={`z-10`}><div className="p-4 bg-white/20 rounded-[1.5rem] border border-white/10 shadow-sm backdrop-blur-sm">{React.cloneElement(getWeatherIcon(), { size: 56 })}</div></div>
+      
+      <div className={`z-10 flex flex-col items-end gap-3`}>
+         {/* 重新整理按鈕 (只顯示給行程頁面) */}
+         {onRefresh && (
+             <button 
+                onClick={(e) => { e.stopPropagation(); onRefresh(); }}
+                className={`p-2 rounded-full bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all`}
+             >
+                <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} />
+             </button>
+         )}
+
+         <div className="p-4 bg-white/20 rounded-[1.5rem] border border-white/10 shadow-sm backdrop-blur-sm">
+            {React.cloneElement(getWeatherIcon(weather?.current?.weather_code), { size: 56 })}
+         </div>
+      </div>
     </div>
   );
 };
 
-const ItineraryView = () => {
+export const ItineraryView = () => {
   const [activeDay, setActiveDay] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
   const [itineraryData, setItineraryData] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Controls network loading state
+  
+  // UI States
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', time: '', desc: '', icon: 'default' });
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingItem, setDeletingItem] = useState(null); // Stores item to delete
+  
+  // Deletion state
+  const [deletingItem, setDeletingItem] = useState(null);
 
   const dates = { 1: '1/15', 2: '1/16', 3: '1/17', 4: '1/18', 5: '1/19' };
 
-  // 使用 GAS API 讀取行程
-  const fetchItinerary = async () => {
+  // 修改：讀取行程 (增加快取機制)
+  const fetchItinerary = async (isManualRefresh = false) => {
     if (!GOOGLE_APPS_SCRIPT_URL) return;
-    setLoading(true);
-    const res = await apiRequest('read');
-    if (res.status === 'success') {
-      const parsedData = {};
-      res.data.forEach(item => {
-        item.id = String(item.id);
-        
-        if (item.time && String(item.time).includes('T')) {
-            try {
-                const date = new Date(item.time);
-                const h = String(date.getHours()).padStart(2, '0');
-                const m = String(date.getMinutes()).padStart(2, '0');
-                item.time = `${h}:${m}`;
-            } catch (e) {
-                console.warn("Time parse error", e);
-            }
-        }
-
-        const day = parseInt(item.day);
-        if (!isNaN(day)) {
-          if (!parsedData[day]) parsedData[day] = [];
-          parsedData[day].push(item);
-        }
-      });
-      Object.keys(parsedData).forEach(d => parsedData[d].sort((a, b) => a.time.localeCompare(b.time)));
-      setItineraryData(parsedData);
+    
+    // 如果是手動更新，開啟 loading
+    if (isManualRefresh) {
+        setLoading(true);
     }
-    setLoading(false);
+
+    try {
+        const res = await apiRequest('read');
+        if (res.status === 'success') {
+          const parsedData = {};
+          res.data.forEach(item => {
+            item.id = String(item.id);
+            
+            if (item.time && String(item.time).includes('T')) {
+                try {
+                    const date = new Date(item.time);
+                    const h = String(date.getHours()).padStart(2, '0');
+                    const m = String(date.getMinutes()).padStart(2, '0');
+                    item.time = `${h}:${m}`;
+                } catch (e) {
+                    console.warn("Time parse error", e);
+                }
+            }
+    
+            const day = parseInt(item.day);
+            if (!isNaN(day)) {
+              if (!parsedData[day]) parsedData[day] = [];
+              parsedData[day].push(item);
+            }
+          });
+          Object.keys(parsedData).forEach(d => parsedData[d].sort((a, b) => a.time.localeCompare(b.time)));
+          
+          // 更新 State
+          setItineraryData(parsedData);
+          // 更新 Cache
+          localStorage.setItem('itinerary_cache', JSON.stringify(parsedData));
+        }
+    } catch (e) {
+        console.error("Fetch error", e);
+        // Error handling if needed
+    } finally {
+        setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchItinerary(); }, []);
+  // 修改：初始載入邏輯
+  useEffect(() => { 
+      // 1. 先嘗試讀取快取
+      const cached = localStorage.getItem('itinerary_cache');
+      if (cached) {
+          try {
+              setItineraryData(JSON.parse(cached));
+          } catch(e) {
+              // Cache broken, fetch fresh
+              fetchItinerary(true); 
+          }
+      } else {
+          // 2. 沒快取才自動抓
+          fetchItinerary(true); 
+      }
+  }, []);
 
   const handleSaveItem = async () => {
     setIsSaving(true);
@@ -287,7 +361,7 @@ const ItineraryView = () => {
     const action = currentId && !currentId.startsWith('new-') ? 'update' : 'create';
     const payload = { ...editForm, id: action === 'update' ? currentId : undefined, day: activeDay };
     const res = await apiRequest(action, payload);
-    if (res.status === 'success') { await fetchItinerary(); setSelectedItem(null); setIsEditing(false); } else { alert("儲存失敗: " + res.message); }
+    if (res.status === 'success') { await fetchItinerary(true); setSelectedItem(null); setIsEditing(false); } else { alert("儲存失敗: " + res.message); }
     setIsSaving(false);
   };
 
@@ -300,13 +374,18 @@ const ItineraryView = () => {
     if (currentId && !currentId.startsWith('new-')) {
        const res = await apiRequest('delete', { id: currentId });
        if (res.status === 'success') { 
-           await fetchItinerary(); 
+           await fetchItinerary(true); // Force refresh after delete
        } else { 
            alert("刪除失敗: " + (res.message || "未知錯誤")); 
        }
     } else { 
-        // Local temporary item, just refresh (or could manually remove from state)
-        await fetchItinerary();
+        // Local temporary item, manually remove from state/cache
+        const newData = { ...itineraryData };
+        if (newData[activeDay]) {
+            newData[activeDay] = newData[activeDay].filter(i => i.id !== currentId);
+            setItineraryData(newData);
+            localStorage.setItem('itinerary_cache', JSON.stringify(newData));
+        }
     }
     setDeletingItem(null);
     setIsSaving(false);
@@ -320,8 +399,20 @@ const ItineraryView = () => {
   const currentDayItems = itineraryData[activeDay] || [];
 
   return (
-    <div className="pb-32">
-      <WeatherWidget />
+    <div className="pb-32 relative">
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#f7eaed]/50 backdrop-blur-sm">
+            <div className="bg-white p-6 rounded-3xl shadow-xl animate-bounce-slight flex flex-col items-center gap-3">
+               <Loader2 size={48} className="text-[#efc0c2] animate-spin" />
+               <span className="text-[#5f768f] font-bold text-sm">更新行程中...</span>
+            </div>
+        </div>
+      )}
+
+      {/* 傳遞 refresh handler 給 WeatherWidget */}
+      <WeatherWidget onRefresh={() => fetchItinerary(true)} isRefreshing={loading} />
+      
       <div className={`sticky top-0 ${UI.bgMain}/95 backdrop-blur-sm z-10 py-3 -mx-4 px-4 overflow-x-auto scrollbar-hide flex gap-3 mb-6`}>
         {[1, 2, 3, 4, 5].map((day) => (
           <button key={day} onClick={() => setActiveDay(day)} className={`flex-shrink-0 w-[4.5rem] h-[4.5rem] rounded-2xl flex flex-col items-center justify-center transition-all duration-300 border-2 ${activeDay === day ? `${UI.btnPrimary} scale-105 border-transparent` : `bg-white/50 border-transparent ${UI.textMain} hover:border-[#c7dbcf]`}`}>
@@ -331,10 +422,7 @@ const ItineraryView = () => {
         ))}
       </div>
 
-      {loading ? (
-         <div className="space-y-4">{[1,2,3].map(i => <div key={i} className={`h-24 ${UI.cardSmall} rounded-[2rem] animate-pulse`}></div>)}</div>
-      ) : (
-        <div className="space-y-4">
+      <div className="space-y-4">
           {currentDayItems.length === 0 && <div className={`text-center py-16 ${UI.textMain}`}>本日尚無行程</div>}
           {currentDayItems.map((item, index) => (
             <div 
@@ -342,7 +430,7 @@ const ItineraryView = () => {
               onClick={() => { setSelectedItem(item); setEditForm(item); setIsEditing(false); }} 
               className={`group ${UI.cardSmall} rounded-[2rem] p-5 relative active:scale-[0.98] transition-all cursor-pointer overflow-hidden`}
             >
-              {/* External Delete Button (Visible on card) */}
+              {/* External Delete Button */}
               <button 
                 onClick={(e) => {
                     e.stopPropagation(); // 防止觸發卡片開啟
@@ -371,8 +459,7 @@ const ItineraryView = () => {
           <button onClick={handleCreateNew} className={`w-full py-4 rounded-[2rem] border-2 border-dashed border-[#c7dbcf] text-[#93a9c0] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#c7dbcf]/20 transition-all mt-4`}>
             <Plus size={16} /> 新增行程
           </button>
-        </div>
-      )}
+      </div>
 
       {/* Delete Confirmation Popup */}
       {deletingItem && (
@@ -469,7 +556,7 @@ const ItineraryView = () => {
   );
 };
 
-const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate, onDeleteExpense }) => {
+export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate, onDeleteExpense }) => {
   const [viewMode, setViewMode] = useState('list');
   const [showFormModal, setShowFormModal] = useState(false);
   const [formData, setFormData] = useState({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS }); 
@@ -607,7 +694,7 @@ const RemindersView = () => {
   );
 };
 
-const OthersView = () => {
+export const OthersView = () => {
   const [krwInput, setKrwInput] = useState('');
   const twdOutput = useMemo(() => { if (!krwInput) return 0; return parseFloat(krwInput) * FIXED_EXCHANGE_RATE; }, [krwInput]);
   const phrases = [{ ko: '안녕하세요', pro: 'An-nyeong-ha-se-yo', zh: '你好' }, { ko: '감사합니다', pro: 'Kam-sa-ham-ni-da', zh: '謝謝' }, { ko: '얼마예요?', pro: 'Ol-ma-ye-yo?', zh: '多少錢？' }, { ko: '화장실 어디예요?', pro: 'Hwa-jang-sil eo-di-ye-yo?', zh: '洗手間在哪？' }, { ko: '이거 주세요', pro: 'I-geo ju-se-yo', zh: '請給我這個' }];
