@@ -16,11 +16,12 @@ permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  test:
+    name: 🧪 Run Unit Tests
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v3
         with:
           ref: ${{ inputs.target_branch }}
@@ -29,29 +30,48 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'
 
-      # 1. 先安裝依賴
       - name: Install Dependencies
         working-directory: ./seoul-trip-2025
-        run: npm install
+        run: npm ci
 
-      # 2. 執行單元測試 (新增這一段)
-      # 如果測試失敗，流程會在這裡中止，不會進行打包和部署
-      - name: Run Unit Tests
+      - name: Run Tests
         working-directory: ./seoul-trip-2025
         run: npm run test
 
-      # 3. 測試通過後才打包
-      - name: Build
+  build-and-deploy:
+    name: 🚀 Build & Deploy
+    needs: test # 必須等測試通過才執行
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.target_branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        working-directory: ./seoul-trip-2025
+        run: npm ci
+
+      - name: Build Project
         working-directory: ./seoul-trip-2025
         run: npm run build
         env:
+          # 建置時必填，因為 Vite 會將這些變數打包進靜態檔案
           VITE_AUTH_PIN: ${{ secrets.VITE_AUTH_PIN }}
           VITE_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_GOOGLE_FORM_ACTION_URL }}
           VITE_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_CSV_URL }}
           VITE_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_PLAN_CSV_URL }}
 
-      - name: Deploy
+      - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: seoul-trip-2025/dist
