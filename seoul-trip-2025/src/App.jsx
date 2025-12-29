@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { 
-  MapPin, 
-  Calendar, 
-  Wallet, 
-  CloudSun, 
-  CheckSquare, 
-  Languages, 
-  Plus, 
-  ShoppingBag, 
-  Utensils, 
+import {
+  MapPin,
+  Calendar,
+  Wallet,
+  CloudSun,
+  CheckSquare,
+  Languages,
+  Plus,
+  ShoppingBag,
+  Utensils,
   Train,
   Clock,
   X,
@@ -34,7 +34,7 @@ import {
   Edit2,
   Save,
   Loader2,
-  AlertTriangle 
+  AlertTriangle
 } from 'lucide-react';
 
 const { useState, useEffect, useMemo } = React;
@@ -68,7 +68,7 @@ const UI = {
 
   // 文字顏色
   textMain: "text-[#5f768f]",
-  textSub: "text-[#5f768f]/70", 
+  textSub: "text-[#5f768f]/70",
   textWhite: "text-white",
 
   // 按鈕
@@ -83,7 +83,7 @@ const UI = {
 
   // 圖示配色
   icon: {
-    primary: "#efc0c2", 
+    primary: "#efc0c2",
     secondary: "#c7dbcf",
     text: "#5f768f",
     white: "#ffffff"
@@ -102,22 +102,22 @@ const getEnv = (key, defaultValue) => {
   }
 };
 
-const APP_PASSWORD = getEnv("VITE_AUTH_PIN", "2026"); 
-const FIXED_EXCHANGE_RATE = 0.0236; 
+const APP_PASSWORD = getEnv("VITE_AUTH_PIN", "2026");
+const FIXED_EXCHANGE_RATE = 0.0236;
 const MEMBERS = ['爸', '媽', '信', '屏', '樸'];
 
 // ⚠️ 行程專用 API (綁定 Itinerary Sheet)
-const GOOGLE_APPS_SCRIPT_URL =  getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", "");
+const GOOGLE_APPS_SCRIPT_URL = getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", "");
 
 // 記帳專用 (Sheet 2)
 const DEFAULT_SHEET_CSV_URL = getEnv("VITE_GOOGLE_SHEET_CSV_URL", "");
 const GOOGLE_FORM_ACTION_URL = getEnv("VITE_GOOGLE_FORM_ACTION_URL", ""); // 用於寫入記帳
 
 const FORM_ENTRY_IDS = {
-  ITEM: "entry.535523921",     
-  AMOUNT: "entry.304377441",   
-  PAYER: "entry.1459657419",    
-  CATEGORY: "entry.1495061883" 
+  ITEM: "entry.535523921",
+  AMOUNT: "entry.304377441",
+  PAYER: "entry.1459657419",
+  CATEGORY: "entry.1495061883"
 };
 
 // ==========================================
@@ -169,7 +169,7 @@ export const smartParseCSV = (csvText) => {
     } else if (char === ',' && !inQuotes) {
       currentRow.push(currentCell.trim()); currentCell = '';
     } else if ((char === '\r' || char === '\n') && !inQuotes) {
-      if (char === '\r' && nextChar === '\n') i++; 
+      if (char === '\r' && nextChar === '\n') i++;
       currentRow.push(currentCell.trim());
       if (currentRow.some(cell => cell !== '')) { rows.push(currentRow); }
       currentRow = []; currentCell = '';
@@ -239,7 +239,7 @@ export const WeatherWidget = ({ onRefresh, isRefreshing }) => {
   return (
     <div className={`${UI.cardLarge} rounded-[2.5rem] p-7 mb-6 flex items-center justify-between relative overflow-hidden`}>
       <div className={`absolute right-0 top-0 w-48 h-48 bg-white/20 rounded-full -mr-12 -mt-12 z-0`}></div>
-      
+
       <div className="z-10 flex flex-col justify-center">
         <div className={`flex items-center gap-1.5 text-white/90 text-xs font-bold uppercase tracking-widest mb-1`}>
           <MapPin size={12} />
@@ -254,21 +254,21 @@ export const WeatherWidget = ({ onRefresh, isRefreshing }) => {
           <span>L:{Math.round(weather?.daily?.temperature_2m_min[0])}°</span>
         </div>
       </div>
-      
-      <div className={`z-10 flex flex-col items-end gap-3`}>
-         {/* 重新整理按鈕 (只顯示給行程頁面) */}
-         {onRefresh && (
-             <button 
-                onClick={(e) => { e.stopPropagation(); onRefresh(); }}
-                className={`p-2 rounded-full bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all`}
-             >
-                <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} />
-             </button>
-         )}
 
-         <div className="p-4 bg-white/20 rounded-[1.5rem] border border-white/10 shadow-sm backdrop-blur-sm">
-            {React.cloneElement(getWeatherIcon(weather?.current?.weather_code), { size: 56 })}
-         </div>
+      <div className={`z-10 flex flex-col items-end gap-3`}>
+        {/* 重新整理按鈕 (只顯示給行程頁面) */}
+        {onRefresh && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onRefresh(); }}
+            className={`p-2 rounded-full bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all`}
+          >
+            <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} />
+          </button>
+        )}
+
+        <div className="p-4 bg-white/20 rounded-[1.5rem] border border-white/10 shadow-sm backdrop-blur-sm">
+          {React.cloneElement(getWeatherIcon(weather?.current?.weather_code), { size: 56 })}
+        </div>
       </div>
     </div>
   );
@@ -279,12 +279,12 @@ export const ItineraryView = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [itineraryData, setItineraryData] = useState({});
   const [loading, setLoading] = useState(false); // Controls network loading state
-  
+
   // UI States
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', time: '', desc: '', icon: 'default' });
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Deletion state
   const [deletingItem, setDeletingItem] = useState(null);
 
@@ -293,66 +293,66 @@ export const ItineraryView = () => {
   // 修改：讀取行程 (增加快取機制)
   const fetchItinerary = async (isManualRefresh = false) => {
     if (!GOOGLE_APPS_SCRIPT_URL) return;
-    
+
     // 如果是手動更新，開啟 loading
     if (isManualRefresh) {
-        setLoading(true);
+      setLoading(true);
     }
 
     try {
-        const res = await apiRequest('read');
-        if (res.status === 'success') {
-          const parsedData = {};
-          res.data.forEach(item => {
-            item.id = String(item.id);
-            
-            if (item.time && String(item.time).includes('T')) {
-                try {
-                    const date = new Date(item.time);
-                    const h = String(date.getHours()).padStart(2, '0');
-                    const m = String(date.getMinutes()).padStart(2, '0');
-                    item.time = `${h}:${m}`;
-                } catch (e) {
-                    console.warn("Time parse error", e);
-                }
+      const res = await apiRequest('read');
+      if (res.status === 'success') {
+        const parsedData = {};
+        res.data.forEach(item => {
+          item.id = String(item.id);
+
+          if (item.time && String(item.time).includes('T')) {
+            try {
+              const date = new Date(item.time);
+              const h = String(date.getHours()).padStart(2, '0');
+              const m = String(date.getMinutes()).padStart(2, '0');
+              item.time = `${h}:${m}`;
+            } catch (e) {
+              console.warn("Time parse error", e);
             }
-    
-            const day = parseInt(item.day);
-            if (!isNaN(day)) {
-              if (!parsedData[day]) parsedData[day] = [];
-              parsedData[day].push(item);
-            }
-          });
-          Object.keys(parsedData).forEach(d => parsedData[d].sort((a, b) => a.time.localeCompare(b.time)));
-          
-          // 更新 State
-          setItineraryData(parsedData);
-          // 更新 Cache
-          localStorage.setItem('itinerary_cache', JSON.stringify(parsedData));
-        }
+          }
+
+          const day = parseInt(item.day);
+          if (!isNaN(day)) {
+            if (!parsedData[day]) parsedData[day] = [];
+            parsedData[day].push(item);
+          }
+        });
+        Object.keys(parsedData).forEach(d => parsedData[d].sort((a, b) => a.time.localeCompare(b.time)));
+
+        // 更新 State
+        setItineraryData(parsedData);
+        // 更新 Cache
+        localStorage.setItem('itinerary_cache', JSON.stringify(parsedData));
+      }
     } catch (e) {
-        console.error("Fetch error", e);
-        // Error handling if needed
+      console.error("Fetch error", e);
+      // Error handling if needed
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   // 修改：初始載入邏輯
-  useEffect(() => { 
-      // 1. 先嘗試讀取快取
-      const cached = localStorage.getItem('itinerary_cache');
-      if (cached) {
-          try {
-              setItineraryData(JSON.parse(cached));
-          } catch(e) {
-              // Cache broken, fetch fresh
-              fetchItinerary(true); 
-          }
-      } else {
-          // 2. 沒快取才自動抓
-          fetchItinerary(true); 
+  useEffect(() => {
+    // 1. 先嘗試讀取快取
+    const cached = localStorage.getItem('itinerary_cache');
+    if (cached) {
+      try {
+        setItineraryData(JSON.parse(cached));
+      } catch (e) {
+        // Cache broken, fetch fresh
+        fetchItinerary(true);
       }
+    } else {
+      // 2. 沒快取才自動抓
+      fetchItinerary(true);
+    }
   }, []);
 
   const handleSaveItem = async () => {
@@ -369,23 +369,23 @@ export const ItineraryView = () => {
     if (!deletingItem) return;
     setIsSaving(true);
     const currentId = deletingItem.id ? String(deletingItem.id) : null;
-    
+
     // Check if it's a real synced item
     if (currentId && !currentId.startsWith('new-')) {
-       const res = await apiRequest('delete', { id: currentId });
-       if (res.status === 'success') { 
-           await fetchItinerary(true); // Force refresh after delete
-       } else { 
-           alert("刪除失敗: " + (res.message || "未知錯誤")); 
-       }
-    } else { 
-        // Local temporary item, manually remove from state/cache
-        const newData = { ...itineraryData };
-        if (newData[activeDay]) {
-            newData[activeDay] = newData[activeDay].filter(i => i.id !== currentId);
-            setItineraryData(newData);
-            localStorage.setItem('itinerary_cache', JSON.stringify(newData));
-        }
+      const res = await apiRequest('delete', { id: currentId });
+      if (res.status === 'success') {
+        await fetchItinerary(true); // Force refresh after delete
+      } else {
+        alert("刪除失敗: " + (res.message || "未知錯誤"));
+      }
+    } else {
+      // Local temporary item, manually remove from state/cache
+      const newData = { ...itineraryData };
+      if (newData[activeDay]) {
+        newData[activeDay] = newData[activeDay].filter(i => i.id !== currentId);
+        setItineraryData(newData);
+        localStorage.setItem('itinerary_cache', JSON.stringify(newData));
+      }
     }
     setDeletingItem(null);
     setIsSaving(false);
@@ -403,16 +403,16 @@ export const ItineraryView = () => {
       {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#f7eaed]/50 backdrop-blur-sm">
-            <div className="bg-white p-6 rounded-3xl shadow-xl animate-bounce-slight flex flex-col items-center gap-3">
-               <Loader2 size={48} className="text-[#efc0c2] animate-spin" />
-               <span className="text-[#5f768f] font-bold text-sm">更新行程中...</span>
-            </div>
+          <div className="bg-white p-6 rounded-3xl shadow-xl animate-bounce-slight flex flex-col items-center gap-3">
+            <Loader2 size={48} className="text-[#efc0c2] animate-spin" />
+            <span className="text-[#5f768f] font-bold text-sm">更新行程中...</span>
+          </div>
         </div>
       )}
 
       {/* 傳遞 refresh handler 給 WeatherWidget */}
       <WeatherWidget onRefresh={() => fetchItinerary(true)} isRefreshing={loading} />
-      
+
       <div className={`sticky top-0 ${UI.bgMain}/95 backdrop-blur-sm z-10 py-3 -mx-4 px-4 overflow-x-auto scrollbar-hide flex gap-3 mb-6`}>
         {[1, 2, 3, 4, 5].map((day) => (
           <button key={day} onClick={() => setActiveDay(day)} className={`flex-shrink-0 w-[4.5rem] h-[4.5rem] rounded-2xl flex flex-col items-center justify-center transition-all duration-300 border-2 ${activeDay === day ? `${UI.btnPrimary} scale-105 border-transparent` : `bg-white/50 border-transparent ${UI.textMain} hover:border-[#c7dbcf]`}`}>
@@ -423,70 +423,70 @@ export const ItineraryView = () => {
       </div>
 
       <div className="space-y-4">
-          {currentDayItems.length === 0 && <div className={`text-center py-16 ${UI.textMain}`}>本日尚無行程</div>}
-          {currentDayItems.map((item, index) => (
-            <div 
-              key={index} 
-              onClick={() => { setSelectedItem(item); setEditForm(item); setIsEditing(false); }} 
-              className={`group ${UI.cardSmall} rounded-[2rem] p-5 relative active:scale-[0.98] transition-all cursor-pointer overflow-hidden`}
+        {currentDayItems.length === 0 && <div className={`text-center py-16 ${UI.textMain}`}>本日尚無行程</div>}
+        {currentDayItems.map((item, index) => (
+          <div
+            key={index}
+            onClick={() => { setSelectedItem(item); setEditForm(item); setIsEditing(false); }}
+            className={`group ${UI.cardSmall} rounded-[2rem] p-5 relative active:scale-[0.98] transition-all cursor-pointer overflow-hidden`}
+          >
+            {/* External Delete Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // 防止觸發卡片開啟
+                setDeletingItem(item);
+              }}
+              className={`absolute top-4 right-4 z-10 p-2 rounded-full bg-white/50 text-[#5f768f]/50 hover:text-[#efc0c2] hover:bg-white shadow-sm transition-all`}
             >
-              {/* External Delete Button */}
-              <button 
-                onClick={(e) => {
-                    e.stopPropagation(); // 防止觸發卡片開啟
-                    setDeletingItem(item);
-                }}
-                className={`absolute top-4 right-4 z-10 p-2 rounded-full bg-white/50 text-[#5f768f]/50 hover:text-[#efc0c2] hover:bg-white shadow-sm transition-all`}
-              >
-                <Trash2 size={16} />
-              </button>
+              <Trash2 size={16} />
+            </button>
 
-              <div className="flex gap-5">
-                <div className="flex flex-col items-center min-w-[3.5rem] pt-1">
-                  <span className={`text-sm font-black ${UI.textMain}`}>{item.time}</span>
-                  <div className={`h-full w-0.5 bg-[#5f768f]/20 mt-3 mb-[-2rem] group-last:bg-transparent`}></div>
+            <div className="flex gap-5">
+              <div className="flex flex-col items-center min-w-[3.5rem] pt-1">
+                <span className={`text-sm font-black ${UI.textMain}`}>{item.time}</span>
+                <div className={`h-full w-0.5 bg-[#5f768f]/20 mt-3 mb-[-2rem] group-last:bg-transparent`}></div>
+              </div>
+              <div className="flex-grow pb-1 pr-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`p-1.5 bg-white/50 text-[#5f768f] rounded-xl`}>{ICON_MAP[item.icon] || ICON_MAP['default']}</div>
                 </div>
-                <div className="flex-grow pb-1 pr-8">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`p-1.5 bg-white/50 text-[#5f768f] rounded-xl`}>{ICON_MAP[item.icon] || ICON_MAP['default']}</div>
-                  </div>
-                  <h4 className={`font-black ${UI.textMain} text-xl mb-1`}>{item.title}</h4>
-                  <p className={`${UI.textSub} text-sm line-clamp-2 leading-relaxed font-medium`}>{item.desc}</p>
-                </div>
+                <h4 className={`font-black ${UI.textMain} text-xl mb-1`}>{item.title}</h4>
+                <p className={`${UI.textSub} text-sm line-clamp-2 leading-relaxed font-medium`}>{item.desc}</p>
               </div>
             </div>
-          ))}
-          <button onClick={handleCreateNew} className={`w-full py-4 rounded-[2rem] border-2 border-dashed border-[#c7dbcf] text-[#93a9c0] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#c7dbcf]/20 transition-all mt-4`}>
-            <Plus size={16} /> 新增行程
-          </button>
+          </div>
+        ))}
+        <button onClick={handleCreateNew} className={`w-full py-4 rounded-[2rem] border-2 border-dashed border-[#c7dbcf] text-[#93a9c0] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#c7dbcf]/20 transition-all mt-4`}>
+          <Plus size={16} /> 新增行程
+        </button>
       </div>
 
       {/* Delete Confirmation Popup */}
       {deletingItem && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
-            <div className={`absolute inset-0 bg-[#5f768f]/40 backdrop-blur-sm animate-fade-in`} onClick={() => setDeletingItem(null)}></div>
-            <div className={`relative bg-[#f7eaed] w-full max-w-xs rounded-[2rem] shadow-2xl p-6 animate-slide-up flex flex-col items-center text-center`}>
-                <div className={`w-16 h-16 bg-[#efc0c2]/20 rounded-full flex items-center justify-center mb-4 text-[#efc0c2]`}>
-                    <AlertTriangle size={32} />
-                </div>
-                <h3 className={`text-xl font-black ${UI.textMain} mb-2`}>確認刪除？</h3>
-                <p className={`${UI.textSub} text-sm mb-6`}>您確定要刪除行程「{deletingItem.title}」嗎？此動作無法復原。</p>
-                <div className="flex gap-3 w-full">
-                    <button 
-                        onClick={() => setDeletingItem(null)} 
-                        className={`flex-1 bg-white/50 text-[#5f768f] py-3 rounded-xl font-bold`}
-                    >
-                        取消
-                    </button>
-                    <button 
-                        onClick={handleConfirmDelete} 
-                        disabled={isSaving}
-                        className={`flex-1 ${UI.btnPrimary} py-3 rounded-xl font-bold flex items-center justify-center gap-2`}
-                    >
-                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : "刪除"}
-                    </button>
-                </div>
+          <div className={`absolute inset-0 bg-[#5f768f]/40 backdrop-blur-sm animate-fade-in`} onClick={() => setDeletingItem(null)}></div>
+          <div className={`relative bg-[#f7eaed] w-full max-w-xs rounded-[2rem] shadow-2xl p-6 animate-slide-up flex flex-col items-center text-center`}>
+            <div className={`w-16 h-16 bg-[#efc0c2]/20 rounded-full flex items-center justify-center mb-4 text-[#efc0c2]`}>
+              <AlertTriangle size={32} />
             </div>
+            <h3 className={`text-xl font-black ${UI.textMain} mb-2`}>確認刪除？</h3>
+            <p className={`${UI.textSub} text-sm mb-6`}>您確定要刪除行程「{deletingItem.title}」嗎？此動作無法復原。</p>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setDeletingItem(null)}
+                className={`flex-1 bg-white/50 text-[#5f768f] py-3 rounded-xl font-bold`}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isSaving}
+                className={`flex-1 ${UI.btnPrimary} py-3 rounded-xl font-bold flex items-center justify-center gap-2`}
+              >
+                {isSaving ? <Loader2 size={16} className="animate-spin" /> : "刪除"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -495,59 +495,59 @@ export const ItineraryView = () => {
         <div className="fixed inset-0 z-[100] flex items-end justify-center">
           <div className={`absolute inset-0 bg-[#5f768f]/30 backdrop-blur-sm animate-fade-in`} onClick={() => setSelectedItem(null)}></div>
           <div className={`bg-[#f7eaed] w-full max-w-md rounded-t-[2.5rem] shadow-2xl shadow-[#5f768f]/20 relative z-10 overflow-hidden h-[85vh] flex flex-col animate-slide-up`}>
-            
+
             {/* Header: Edit and Close Buttons */}
             <div className="w-full flex justify-between items-center p-6 pb-2">
-                {!isEditing ? (
-                    <button 
-                        onClick={() => { setIsEditing(true); setEditForm(selectedItem); }} 
-                        className={`${UI.btnIcon}`}
-                    >
-                        <Edit2 size={20} />
-                    </button>
-                ) : <div className="w-10"></div>}
-
-                <button 
-                    onClick={() => setSelectedItem(null)} 
-                    className={`${UI.btnIcon}`}
+              {!isEditing ? (
+                <button
+                  onClick={() => { setIsEditing(true); setEditForm(selectedItem); }}
+                  className={`${UI.btnIcon}`}
                 >
-                    <X size={20} />
+                  <Edit2 size={20} />
                 </button>
+              ) : <div className="w-10"></div>}
+
+              <button
+                onClick={() => setSelectedItem(null)}
+                className={`${UI.btnIcon}`}
+              >
+                <X size={20} />
+              </button>
             </div>
 
             <div className="flex-grow overflow-y-auto px-8 pb-8 pt-2">
-                {isEditing ? (
-                    <div className="space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h3 className={`text-2xl font-black ${UI.textMain}`}>{selectedItem.id && String(selectedItem.id).startsWith('new-') ? '新增行程' : '編輯行程'}</h3>
-                        </div>
-                        <div><label className={`text-xs font-bold ${UI.textMain} ml-1 mb-1 block`}>時間</label><input type="time" value={editForm.time} onChange={(e) => setEditForm({...editForm, time: e.target.value})} className={`w-full ${UI.inputGlass} p-4 rounded-2xl font-bold`}/></div>
-                        <div><label className={`text-xs font-bold ${UI.textMain} ml-1 mb-1 block`}>標題</label><input type="text" value={editForm.title} onChange={(e) => setEditForm({...editForm, title: e.target.value})} className={`w-full ${UI.inputGlass} p-4 rounded-2xl font-bold text-lg`} placeholder="輸入標題..."/></div>
-                        <div><label className={`text-xs font-bold ${UI.textMain} ml-1 mb-2 block`}>圖示</label><div className="flex flex-wrap gap-2">{Object.keys(ICON_MAP).map(key => (<button key={key} onClick={() => setEditForm({...editForm, icon: key})} className={`p-3 rounded-xl transition-all ${editForm.icon === key ? `bg-[#efc0c2] text-white shadow-md` : `bg-white/50 text-[#5f768f]`}`}>{ICON_MAP[key]}</button>))}</div></div>
-                        <div><label className={`text-xs font-bold ${UI.textMain} ml-1 mb-1 block`}>詳細內容</label><textarea value={editForm.desc} onChange={(e) => setEditForm({...editForm, desc: e.target.value})} className={`w-full ${UI.inputGlass} p-4 rounded-2xl h-40 leading-relaxed`} placeholder="輸入詳細內容..."/></div>
+              {isEditing ? (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className={`text-2xl font-black ${UI.textMain}`}>{selectedItem.id && String(selectedItem.id).startsWith('new-') ? '新增行程' : '編輯行程'}</h3>
+                  </div>
+                  <div><label className={`text-xs font-bold ${UI.textMain} ml-1 mb-1 block`}>時間</label><input type="time" value={editForm.time} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={`w-full ${UI.inputGlass} p-4 rounded-2xl font-bold`} /></div>
+                  <div><label className={`text-xs font-bold ${UI.textMain} ml-1 mb-1 block`}>標題</label><input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className={`w-full ${UI.inputGlass} p-4 rounded-2xl font-bold text-lg`} placeholder="輸入標題..." /></div>
+                  <div><label className={`text-xs font-bold ${UI.textMain} ml-1 mb-2 block`}>圖示</label><div className="flex flex-wrap gap-2">{Object.keys(ICON_MAP).map(key => (<button key={key} onClick={() => setEditForm({ ...editForm, icon: key })} className={`p-3 rounded-xl transition-all ${editForm.icon === key ? `bg-[#efc0c2] text-white shadow-md` : `bg-white/50 text-[#5f768f]`}`}>{ICON_MAP[key]}</button>))}</div></div>
+                  <div><label className={`text-xs font-bold ${UI.textMain} ml-1 mb-1 block`}>詳細內容</label><textarea value={editForm.desc} onChange={(e) => setEditForm({ ...editForm, desc: e.target.value })} className={`w-full ${UI.inputGlass} p-4 rounded-2xl h-40 leading-relaxed`} placeholder="輸入詳細內容..." /></div>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4 pt-2">
+                    <div className={`inline-flex items-center gap-2 bg-[#c7dbcf] text-[#5f768f] px-4 py-2 rounded-full text-xs font-bold`}>
+                      <Clock size={14} />
+                      {selectedItem.time}
                     </div>
-                ) : (
-                    <>
-                        <div className="mb-4 pt-2">
-                            <div className={`inline-flex items-center gap-2 bg-[#c7dbcf] text-[#5f768f] px-4 py-2 rounded-full text-xs font-bold`}>
-                                <Clock size={14} />
-                                {selectedItem.time}
-                            </div>
-                        </div>
-                        <h3 className={`text-4xl font-black ${UI.textMain} leading-tight mb-6`}>{selectedItem.title}</h3>
-                        <div className={`prose ${UI.textMain} leading-loose whitespace-pre-line text-lg`}>{selectedItem.desc}</div>
-                    </>
-                )}
+                  </div>
+                  <h3 className={`text-4xl font-black ${UI.textMain} leading-tight mb-6`}>{selectedItem.title}</h3>
+                  <div className={`prose ${UI.textMain} leading-loose whitespace-pre-line text-lg`}>{selectedItem.desc}</div>
+                </>
+              )}
             </div>
-            
+
             {/* 編輯模式底部按鈕 */}
             {isEditing && (
-                <div className={`p-6 border-t border-[#c7dbcf] pb-safe bg-[#f7eaed]/90 backdrop-blur-sm`}>
-                  <div className="flex gap-3">
-                      <button onClick={() => setIsEditing(false)} disabled={isSaving} className={`flex-1 bg-white/50 text-[#5f768f] py-4 rounded-2xl font-bold disabled:opacity-50`}>取消</button>
-                      <button onClick={handleSaveItem} disabled={isSaving} className={`flex-1 ${UI.btnPrimary} py-4 rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-70`}>{isSaving ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> 儲存</>}</button>
-                  </div>
+              <div className={`p-6 border-t border-[#c7dbcf] pb-safe bg-[#f7eaed]/90 backdrop-blur-sm`}>
+                <div className="flex gap-3">
+                  <button onClick={() => setIsEditing(false)} disabled={isSaving} className={`flex-1 bg-white/50 text-[#5f768f] py-4 rounded-2xl font-bold disabled:opacity-50`}>取消</button>
+                  <button onClick={handleSaveItem} disabled={isSaving} className={`flex-1 ${UI.btnPrimary} py-4 rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-70`}>{isSaving ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> 儲存</>}</button>
                 </div>
+              </div>
             )}
           </div>
         </div>
@@ -559,7 +559,7 @@ export const ItineraryView = () => {
 export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchangeRate, onDeleteExpense }) => {
   const [viewMode, setViewMode] = useState('list');
   const [showFormModal, setShowFormModal] = useState(false);
-  const [formData, setFormData] = useState({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS }); 
+  const [formData, setFormData] = useState({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS });
   const [currencyMode, setCurrencyMode] = useState('TWD');
   const [submitting, setSubmitting] = useState(false);
 
@@ -578,7 +578,7 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchan
   const toggleSplitMember = (member) => {
     setFormData(prev => {
       const current = prev.splitWith;
-      return current.includes(member) 
+      return current.includes(member)
         ? (current.length === 1 ? prev : { ...prev, splitWith: current.filter(m => m !== member) })
         : { ...prev, splitWith: [...current, member] };
     });
@@ -590,7 +590,7 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchan
     e.preventDefault(); if (formData.splitWith.length === 0) { alert("請至少選擇一位分攤對象"); return; }
     setSubmitting(true);
     let amountToSave = parseFloat(formData.amount); if (currencyMode === 'KRW') amountToSave = Math.round(amountToSave * FIXED_EXCHANGE_RATE);
-    let finalItemName = formData.item; if (formData.splitWith.length < MEMBERS.length) finalItemName += ` #split:${formData.splitWith.join(',')}`;
+    let finalItemName = formData.item; if (formData.splitWith.length <= MEMBERS.length) finalItemName += ` #split:${formData.splitWith.join(',')}`;
     await onAddExpense({ item: finalItemName, amount: amountToSave, category: formData.category, payer: formData.payer, splitWith: formData.splitWith });
     setFormData({ item: '', amount: '', category: '食物', payer: '爸', splitWith: MEMBERS }); setSubmitting(false); setShowFormModal(false);
   };
@@ -633,8 +633,15 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchan
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-white/60 text-[#5f768f]`}>{item.category?.includes('食') ? <Utensils size={20} /> : item.category?.includes('購') ? <ShoppingBag size={20} /> : item.category?.includes('交') ? <Train size={20} /> : item.category?.includes('住') ? <Home size={20} /> : <CreditCard size={20} />}</div>
                     <div>
-                      <div className="flex items-center gap-2"><p className={`font-black ${UI.textMain} text-lg`}>{item.desc.split('#')[0]}</p>{item.splitWith && item.splitWith.length < MEMBERS.length && (<span className={`text-[10px] bg-white/50 ${UI.textMain} px-2 py-0.5 rounded-md font-bold`}>{item.splitWith.join(',')}</span>)}</div>
-                      <div className="flex items-center gap-2 mt-1"><span className={`text-xs font-bold ${UI.textSub} bg-white/40 px-2 py-0.5 rounded-md`}>{item.author || 'N/A'}</span>{item.isPending && <span className={`text-[10px] text-[#efc0c2] flex items-center gap-1`}><RefreshCw size={10} className="animate-spin"/></span>}</div>
+                      <div className="flex items-center gap-2">
+                        <p className={`font-black ${UI.textMain} text-lg`}>{item.desc.split('#')[0]}</p>
+                        {item.splitWith && (
+                          <span className={`text-[10px] bg-white/50 ${UI.textMain} px-2 py-0.5 rounded-md font-bold`}>
+                            {item.splitWith.length === MEMBERS.length ? '全員' : item.splitWith.join(',')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1"><span className={`text-xs font-bold ${UI.textSub} bg-white/40 px-2 py-0.5 rounded-md`}>{item.author || 'N/A'}</span>{item.isPending && <span className={`text-[10px] text-[#efc0c2] flex items-center gap-1`}><RefreshCw size={10} className="animate-spin" /></span>}</div>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2"><div><p className={`font-black ${UI.textMain} text-right`}>${item.amount.toLocaleString()}</p><span className={`text-xs font-bold ${UI.textSub} block text-right`}>₩{Math.round(item.amount / FIXED_EXCHANGE_RATE).toLocaleString()}</span></div><button onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); }} className={`p-1.5 rounded-lg hover:bg-white/50 transition-colors ${item.isPending ? 'text-[#efc0c2]' : 'text-[#5f768f]/30'}`}><Trash2 size={16} /></button></div>
@@ -654,18 +661,18 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, exchan
       )}
       {showFormModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center">
-           <div className={`absolute inset-0 bg-[#5f768f]/40 backdrop-blur-sm animate-fade-in`} onClick={() => setShowFormModal(false)}></div>
-           <div className={`bg-[#f7eaed] w-full max-w-sm rounded-t-[2.5rem] sm:rounded-[2.5rem] relative z-10 p-8 animate-slide-up`}>
-              <div className="flex justify-between items-center mb-8"><h3 className={`font-black text-2xl ${UI.textMain}`}>新增支出</h3><button onClick={() => setShowFormModal(false)} className={`bg-[#c7dbcf] p-3 rounded-full text-white`}><X size={20} /></button></div>
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className={`${UI.cardSmall} p-5 rounded-[2rem] border-2 border-transparent focus:border-[#efc0c2] transition-colors`}><label className={`text-xs font-bold ${UI.textSub} uppercase tracking-wider block mb-1`}>金額 ({currencyMode})</label><div className="flex items-center gap-2"><span className={`text-3xl ${UI.textSub} font-light`}>{currencyMode === 'KRW' ? '₩' : '$'}</span><input type="number" value={formData.amount} onChange={(e) => setFormData({...formData, amount: e.target.value})} className={`w-full bg-transparent text-4xl font-black ${UI.textMain} outline-none placeholder-[#c7dbcf]`} placeholder="0" required /></div>{currencyMode === 'KRW' && formData.amount && (<div className={`mt-3 pt-3 border-t border-[#5f768f]/10 text-xs text-[#efc0c2] font-bold flex items-center gap-1`}><ArrowLeftRight size={12} /> 約 NT${Math.round(formData.amount * FIXED_EXCHANGE_RATE).toLocaleString()}</div>)}</div>
-                <div className={`flex bg-[#c7dbcf]/30 p-1.5 rounded-xl`}><button type="button" onClick={() => setCurrencyMode('KRW')} className={`flex-1 py-3 rounded-lg text-sm font-black transition-all ${currencyMode === 'KRW' ? `bg-[#efc0c2] text-white shadow-sm` : `${UI.textMain}`}`}>₩ KRW</button><button type="button" onClick={() => setCurrencyMode('TWD')} className={`flex-1 py-3 rounded-lg text-sm font-black transition-all ${currencyMode === 'TWD' ? `bg-[#efc0c2] text-white shadow-sm` : `${UI.textMain}`}`}>$ TWD</button></div>
-                <div><label className={`text-xs font-bold ${UI.textMain} ml-2 mb-2 block`}>項目名稱</label><input type="text" value={formData.item} onChange={(e) => setFormData({...formData, item: e.target.value})} className={`w-full p-5 ${UI.cardSmall} rounded-2xl outline-none font-bold ${UI.textMain} placeholder-[#5f768f]/50`} placeholder="例如：烤肉" required /></div>
-                <div className="grid grid-cols-2 gap-4"><div><label className={`text-xs font-bold ${UI.textMain} ml-2 mb-2 block`}>分類</label><select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className={`w-full p-5 ${UI.cardSmall} rounded-2xl outline-none font-bold ${UI.textMain} appearance-none`}><option value="食物">🍔 食物</option><option value="住宿">🏠 住宿</option><option value="交通">🚕 交通</option><option value="購物">🛍️ 購物</option><option value="其他">📦 其他</option></select></div><div><label className={`text-xs font-bold ${UI.textMain} ml-2 mb-2 block`}>付款人</label><select value={formData.payer} onChange={(e) => setFormData({...formData, payer: e.target.value})} className={`w-full p-5 ${UI.cardSmall} rounded-2xl outline-none font-bold ${UI.textMain} appearance-none`}>{MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}</select></div></div>
-                <div><div className="flex justify-between items-center mb-3"><label className={`text-xs font-bold ${UI.textMain} ml-2 block`}>分攤對象</label><button type="button" onClick={handleSelectAll} className={`text-xs font-bold text-[#efc0c2] px-2 py-1 rounded hover:bg-[#efc0c2]/10 transition-colors`}>{formData.splitWith.length === MEMBERS.length ? '取消全選' : '全選'}</button></div><div className="grid grid-cols-5 gap-2">{MEMBERS.map(m => {const isSelected = formData.splitWith.includes(m); return (<button key={m} type="button" onClick={() => toggleSplitMember(m)} className={`relative flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-300 ${isSelected ? `bg-[#efc0c2] text-white shadow-md transform scale-105 font-bold` : `bg-white/50 text-[#5f768f]/60 border-2 border-transparent hover:border-[#c7dbcf]`}`}><span className="text-sm">{m}</span>{isSelected && (<div className="absolute -top-1 -right-1 bg-white text-[#efc0c2] rounded-full p-0.5 shadow-sm"><Check size={8} strokeWidth={4} /></div>)}</button>);})}</div></div>
-                <button type="submit" disabled={submitting} className={`w-full ${UI.btnPrimary} py-5 rounded-2xl text-lg mt-6`}>{submitting ? 'Saving...' : '確認記帳'}</button>
-              </form>
-           </div>
+          <div className={`absolute inset-0 bg-[#5f768f]/40 backdrop-blur-sm animate-fade-in`} onClick={() => setShowFormModal(false)}></div>
+          <div className={`bg-[#f7eaed] w-full max-w-sm rounded-t-[2.5rem] sm:rounded-[2.5rem] relative z-10 p-8 animate-slide-up`}>
+            <div className="flex justify-between items-center mb-8"><h3 className={`font-black text-2xl ${UI.textMain}`}>新增支出</h3><button onClick={() => setShowFormModal(false)} className={`bg-[#c7dbcf] p-3 rounded-full text-white`}><X size={20} /></button></div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className={`${UI.cardSmall} p-5 rounded-[2rem] border-2 border-transparent focus:border-[#efc0c2] transition-colors`}><label className={`text-xs font-bold ${UI.textSub} uppercase tracking-wider block mb-1`}>金額 ({currencyMode})</label><div className="flex items-center gap-2"><span className={`text-3xl ${UI.textSub} font-light`}>{currencyMode === 'KRW' ? '₩' : '$'}</span><input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className={`w-full bg-transparent text-4xl font-black ${UI.textMain} outline-none placeholder-[#c7dbcf]`} placeholder="0" required /></div>{currencyMode === 'KRW' && formData.amount && (<div className={`mt-3 pt-3 border-t border-[#5f768f]/10 text-xs text-[#efc0c2] font-bold flex items-center gap-1`}><ArrowLeftRight size={12} /> 約 NT${Math.round(formData.amount * FIXED_EXCHANGE_RATE).toLocaleString()}</div>)}</div>
+              <div className={`flex bg-[#c7dbcf]/30 p-1.5 rounded-xl`}><button type="button" onClick={() => setCurrencyMode('KRW')} className={`flex-1 py-3 rounded-lg text-sm font-black transition-all ${currencyMode === 'KRW' ? `bg-[#efc0c2] text-white shadow-sm` : `${UI.textMain}`}`}>₩ KRW</button><button type="button" onClick={() => setCurrencyMode('TWD')} className={`flex-1 py-3 rounded-lg text-sm font-black transition-all ${currencyMode === 'TWD' ? `bg-[#efc0c2] text-white shadow-sm` : `${UI.textMain}`}`}>$ TWD</button></div>
+              <div><label className={`text-xs font-bold ${UI.textMain} ml-2 mb-2 block`}>項目名稱</label><input type="text" value={formData.item} onChange={(e) => setFormData({ ...formData, item: e.target.value })} className={`w-full p-5 ${UI.cardSmall} rounded-2xl outline-none font-bold ${UI.textMain} placeholder-[#5f768f]/50`} placeholder="例如：烤肉" required /></div>
+              <div className="grid grid-cols-2 gap-4"><div><label className={`text-xs font-bold ${UI.textMain} ml-2 mb-2 block`}>分類</label><select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className={`w-full p-5 ${UI.cardSmall} rounded-2xl outline-none font-bold ${UI.textMain} appearance-none`}><option value="食物">🍔 食物</option><option value="住宿">🏠 住宿</option><option value="交通">🚕 交通</option><option value="購物">🛍️ 購物</option><option value="其他">📦 其他</option></select></div><div><label className={`text-xs font-bold ${UI.textMain} ml-2 mb-2 block`}>付款人</label><select value={formData.payer} onChange={(e) => setFormData({ ...formData, payer: e.target.value })} className={`w-full p-5 ${UI.cardSmall} rounded-2xl outline-none font-bold ${UI.textMain} appearance-none`}>{MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}</select></div></div>
+              <div><div className="flex justify-between items-center mb-3"><label className={`text-xs font-bold ${UI.textMain} ml-2 block`}>分攤對象</label><button type="button" onClick={handleSelectAll} className={`text-xs font-bold text-[#efc0c2] px-2 py-1 rounded hover:bg-[#efc0c2]/10 transition-colors`}>{formData.splitWith.length === MEMBERS.length ? '取消全選' : '全選'}</button></div><div className="grid grid-cols-5 gap-2">{MEMBERS.map(m => { const isSelected = formData.splitWith.includes(m); return (<button key={m} type="button" onClick={() => toggleSplitMember(m)} className={`relative flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-300 ${isSelected ? `bg-[#efc0c2] text-white shadow-md transform scale-105 font-bold` : `bg-white/50 text-[#5f768f]/60 border-2 border-transparent hover:border-[#c7dbcf]`}`}><span className="text-sm">{m}</span>{isSelected && (<div className="absolute -top-1 -right-1 bg-white text-[#efc0c2] rounded-full p-0.5 shadow-sm"><Check size={8} strokeWidth={4} /></div>)}</button>); })}</div></div>
+              <button type="submit" disabled={submitting} className={`w-full ${UI.btnPrimary} py-5 rounded-2xl text-lg mt-6`}>{submitting ? 'Saving...' : '確認記帳'}</button>
+            </form>
+          </div>
         </div>
       )}
     </div>
@@ -763,7 +770,7 @@ export default function App() {
         </header>
         <main className="px-5">
           {activeTab === 'itinerary' && <ItineraryView />}
-          {activeTab === 'expense' && <ExpenseView expenses={expenses} loading={loadingExpenses} onRefresh={fetchExpenses} onDeleteExpense={handleDeleteExpense} onAddExpense={async (data) => { handleAddExpenseLocal(data); if (GOOGLE_FORM_ACTION_URL) { const fd = new FormData(); fd.append(FORM_ENTRY_IDS.ITEM, data.item); fd.append(FORM_ENTRY_IDS.AMOUNT, data.amount); fd.append(FORM_ENTRY_IDS.CATEGORY, data.category); fd.append(FORM_ENTRY_IDS.PAYER, data.payer); try { await fetch(GOOGLE_FORM_ACTION_URL, { method: 'POST', body: fd, mode: 'no-cors' }); } catch(e){} } }} exchangeRate={FIXED_EXCHANGE_RATE} />}
+          {activeTab === 'expense' && <ExpenseView expenses={expenses} loading={loadingExpenses} onRefresh={fetchExpenses} onDeleteExpense={handleDeleteExpense} onAddExpense={async (data) => { handleAddExpenseLocal(data); if (GOOGLE_FORM_ACTION_URL) { const fd = new FormData(); fd.append(FORM_ENTRY_IDS.ITEM, data.item); fd.append(FORM_ENTRY_IDS.AMOUNT, data.amount); fd.append(FORM_ENTRY_IDS.CATEGORY, data.category); fd.append(FORM_ENTRY_IDS.PAYER, data.payer); try { await fetch(GOOGLE_FORM_ACTION_URL, { method: 'POST', body: fd, mode: 'no-cors' }); } catch (e) { } } }} exchangeRate={FIXED_EXCHANGE_RATE} />}
           {activeTab === 'reminders' && <RemindersView />}
           {activeTab === 'others' && <OthersView />}
         </main>
