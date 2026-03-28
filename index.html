@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VC Travel App - 生活即旅行</title>
+    <meta name="description" content="VC 的旅行計畫管理系統。包含 2025 首爾行及 2026 蜜月旅行計畫。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ffffff;
+            --secondary: #f8f9fa;
+            --accent: #6c63ff;
+            --text-dark: #1a1a1a;
+            --text-light: #666666;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background: #f0f2f5;
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            background: var(--gradient);
+            opacity: 0.1;
+        }
+
+        .circles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .circles li {
+            position: absolute;
+            display: block;
+            list-style: none;
+            width: 20px;
+            height: 20px;
+            background: rgba(108, 99, 255, 0.2);
+            animation: animate 25s linear infinite;
+            bottom: -150px;
+            border-radius: 50%;
+        }
+
+        @keyframes animate {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; border-radius: 0; }
+            100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; border-radius: 50%; }
+        }
+
+        header {
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        p.subtitle {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            gap: 2rem;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            padding: 2.5rem;
+            width: 380px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: var(--gradient);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-15px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(108, 99, 255, 0.15);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .icon {
+            font-size: 3.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .card p {
+            color: var(--text-light);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            background: var(--gradient);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            display: inline-block;
+            transition: opacity 0.3s;
+        }
+
+        .card:hover .btn {
+            opacity: 0.9;
+        }
+
+        footer {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .card { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <ul class="circles">
+        <li style="left: 25%; width: 80px; height: 80px; animation-delay: 0s;"></li>
+        <li style="left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s;"></li>
+        <li style="left: 70%; width: 20px; height: 20px; animation-delay: 4s;"></li>
+        <li style="left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s;"></li>
+        <li style="left: 65%; width: 20px; height: 20px; animation-delay: 0s;"></li>
+        <li style="left: 75%; width: 110px; height: 110px; animation-delay: 3s;"></li>
+        <li style="left: 35%; width: 150px; height: 150px; animation-delay: 7s;"></li>
+    </ul>
+
+    <header>
+        <h1>VC Travel App</h1>
+        <p class="subtitle">探索世界，記錄美好每一刻。專為家人規劃的精緻旅行管理。</p>
+    </header>
+
+    <div class="container">
+        <a href="seoul-trip-2025" id="link-seoul" class="card">
+            <div class="icon">🎎</div>
+            <h2>首爾 2025</h2>
+            <p>與親愛家人的 2025 首爾春季之旅。包含行程、開銷追蹤與景點紀錄。</p>
+            <div class="btn">前往首爾</div>
+        </a>
+
+        <a href="honeymoon-trip-2026" id="link-honeymoon" class="card">
+            <div class="icon">💍</div>
+            <h2>蜜月旅行 2026</h2>
+            <p>即將到來的 2026 澳洲、大溪地蜜月冒險。整合三國天氣與多幣別記帳。</p>
+            <div class="btn">前往蜜月</div>
+        </a>
+    </div>
+
+    <footer>
+        &copy; 2025-2026 VC Travel Management. All Rights Reserved.
+    </footer>
+</body>
+</html>
