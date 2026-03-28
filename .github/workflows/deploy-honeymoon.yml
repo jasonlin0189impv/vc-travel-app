@@ -1,4 +1,4 @@
-name: Deploy Seoul Trip (2025)
+name: Deploy Honeymoon Trip (2026)
 
 on:
   workflow_dispatch:
@@ -30,20 +30,16 @@ jobs:
         with:
           node-version: '18'
 
-      # 1. 先安裝依賴
       - name: Install Dependencies
-        working-directory: ./seoul-trip-2025
+        working-directory: ./honeymoon-trip-2026
         run: npm install
 
-      # 2. 執行單元測試 (新增這一段)
-      # 如果測試失敗，流程會在這裡中止，不會進行打包和部署
       - name: Run Unit Tests
-        working-directory: ./seoul-trip-2025
+        working-directory: ./honeymoon-trip-2026
         run: npm run test
 
-      # 3. 測試通過後才打包
       - name: Build
-        working-directory: ./seoul-trip-2025
+        working-directory: ./honeymoon-trip-2026
         run: npm run build
         env:
           VITE_AUTH_PIN: ${{ secrets.VITE_AUTH_PIN }}
@@ -54,6 +50,6 @@ jobs:
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: seoul-trip-2025/dist
+          folder: honeymoon-trip-2026/dist
           branch: gh-pages
-          target-folder: seoul-trip-2025
+          target-folder: honeymoon-trip-2026
