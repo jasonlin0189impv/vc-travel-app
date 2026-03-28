@@ -20,8 +20,8 @@ on:
         options:
           - main
           - develop
-          - feature/seoul-travel-trip
           - feature/honeymoon-travel-trip
+          - feature/seoul-travel-trip
 
 permissions:
   contents: write
@@ -30,7 +30,6 @@ jobs:
   # 部署首爾 2025
   deploy-seoul:
     name: Deploy Seoul Trip
-    # 判斷式：如果選 seoul 或 both 才執行
     if: ${{ github.event.inputs.service == 'seoul' || github.event.inputs.service == 'both' }}
     runs-on: ubuntu-latest
     steps:
@@ -38,6 +37,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.target_branch }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -66,7 +66,6 @@ jobs:
   # 部署蜜月 2026
   deploy-honeymoon:
     name: Deploy Honeymoon Trip
-    # 判斷式：如果選 honeymoon 或 both 才執行
     if: ${{ github.event.inputs.service == 'honeymoon' || github.event.inputs.service == 'both' }}
     runs-on: ubuntu-latest
     steps:
@@ -74,6 +73,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.target_branch }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
