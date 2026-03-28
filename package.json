@@ -1,0 +1,8 @@
+{
+  "name": "vc-travel-app",
+  "private": true,
+  "workspaces": [
+    "seoul-trip-2025",
+    "honeymoon-trip-2026"
+  ]
+}

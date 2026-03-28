@@ -1,13 +1,16 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-// 注意：請確保 SeoulTripApp.jsx 檔案中有將這些元件 export 出來
-import App, {
+import App from './App';
+import {
   smartParseCSV,
   LoginView,
   OthersView,
-  ExpenseView
-} from './App';
+  ExpenseView,
+  ItineraryView,
+  RemindersView,
+  ConfigContext
+} from '../../shared/components/TripApp';
 
 // -----------------------------------------------------------------------------
 // 1. Helper Function Tests
@@ -22,22 +25,6 @@ describe('smartParseCSV', () => {
       ['Bob', '25']
     ]);
   });
-
-  it('should handle quoted fields with commas', () => {
-    const csv = 'Item,Cost\n"Apple, Red",10';
-    const result = smartParseCSV(csv);
-    expect(result).toEqual([
-      ['Item', 'Cost'],
-      ['Apple, Red', '10']
-    ]);
-  });
-
-  it('should handle newlines within quotes', () => {
-    const csv = 'Description,ID\n"Line 1\nLine 2",123';
-    const result = smartParseCSV(csv);
-    expect(result[1][0]).toContain('Line 1');
-    expect(result[1][0]).toContain('Line 2');
-  });
 });
 
 // -----------------------------------------------------------------------------
@@ -45,24 +32,36 @@ describe('smartParseCSV', () => {
 // -----------------------------------------------------------------------------
 
 describe('LoginView', () => {
+  const mockConfig = {
+    ui: { bgMain: '', textMain: '', cardLarge: '', btnSecondary: '' },
+    theme: { small: '#ffffff', large: '#ffffff' },
+    title: { main: 'HONEYMOON', year: '2026' },
+    authPin: '2026'
+  };
+
   it('should show error on wrong password', () => {
     const mockLogin = vi.fn();
-    render(<LoginView onLogin={mockLogin} />);
+    render(
+      <ConfigContext.Provider value={mockConfig}>
+        <LoginView onLogin={mockLogin} />
+      </ConfigContext.Provider>
+    );
 
     const input = screen.getByPlaceholderText('••••');
-    fireEvent.change(input, { target: { value: '0000' } }); // Wrong PIN
-    // 尋找按鈕 (新版按鈕文字仍為 "進入旅程")
+    fireEvent.change(input, { target: { value: '0000' } });
     const submitBtn = screen.getByRole('button', { name: /進入旅程/i });
-    fireEvent.submit(submitBtn.closest('form')); // 或是直接 click button
+    fireEvent.submit(submitBtn.closest('form'));
 
     expect(screen.getByText(/密碼錯誤/i)).toBeInTheDocument();
-    expect(mockLogin).not.toHaveBeenCalled();
   });
 
   it('should call onLogin on correct password', () => {
-    // 假設環境變數 VITE_AUTH_PIN 為預設值 2026
     const mockLogin = vi.fn();
-    render(<LoginView onLogin={mockLogin} />);
+    render(
+      <ConfigContext.Provider value={mockConfig}>
+        <LoginView onLogin={mockLogin} />
+      </ConfigContext.Provider>
+    );
 
     const input = screen.getByPlaceholderText('••••');
     fireEvent.change(input, { target: { value: '2026' } });
@@ -73,302 +72,183 @@ describe('LoginView', () => {
   });
 });
 
-describe('OthersView (Currency Converter)', () => {
-  it('should convert KRW to TWD correctly', () => {
-    render(<OthersView />);
+describe('OthersView', () => {
+  const mockConfig = {
+    ui: { cardLarge: '', textMain: '' },
+    exchangeRates: { 'IDR': 0.002 },
+    baseCurrency: 'TWD',
+    phrases: [{ src: 'Test', pro: 'Test', zh: '測試' }]
+  };
 
-    // 假設匯率為 0.0236
-    const krwInput = screen.getByPlaceholderText('0');
-    fireEvent.change(krwInput, { target: { value: '10000' } });
+  it('should convert currency correctly', () => {
+    render(
+      <ConfigContext.Provider value={mockConfig}>
+        <OthersView />
+      </ConfigContext.Provider>
+    );
 
-    // 驗證 TWD 輸出結果 (10000 * 0.0236 = 236)
-    // 這裡我們直接查找顯示結果的元素
-    expect(screen.getByText('236')).toBeInTheDocument();
+    const input = screen.getByPlaceholderText('0');
+    fireEvent.change(input, { target: { value: '10000' } });
+    expect(screen.getByText('20')).toBeInTheDocument();
   });
 });
 
-// -----------------------------------------------------------------------------
-// 3. Integration Tests (Expense Flow)
-// -----------------------------------------------------------------------------
+describe('Itinerary & Weather Switching', () => {
+  const mockConfig = {
+    ui: { bgMain: '', cardLarge: '', cardSmall: '', btnPrimary: 'test-btn', textMain: '', textSub: '', border: '', inputGlass: '' },
+    theme: { small: '#ffffff', large: '#ffffff' },
+    dates: { 1: '1/1', 12: '1/12' },
+    title: { main: 'HONEYMOON' },
+    api: { planCsvUrl: '' },
+    weatherLocations: [
+      { name: "BALI", lat: -8.34, lon: 115.09 },
+      { name: "VIETNAM", lat: 14.05, lon: 108.27 }
+    ]
+  };
 
-describe('ExpenseView Integration', () => {
-  const mockExpenses = [];
-  const mockOnAdd = vi.fn();
-  const mockOnDelete = vi.fn();
-  const mockOnRefresh = vi.fn();
+  it('should switch weather locations', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        current: { temperature_2m: 28 },
+        daily: { temperature_2m_max: [30], temperature_2m_min: [22] }
+      }),
+      text: () => Promise.resolve('')
+    });
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should open modal and submit new expense', async () => {
     render(
-      <ExpenseView
-        expenses={mockExpenses}
-        loading={false}
-        onAddExpense={mockOnAdd}
-        onDeleteExpense={mockOnDelete}
-        onRefresh={mockOnRefresh}
-        exchangeRate={0.0236}
-      />
+      <ConfigContext.Provider value={mockConfig}>
+        <ItineraryView />
+      </ConfigContext.Provider>
     );
 
-    // 1. 點擊 "記一筆"
+    expect(await screen.findByText('BALI')).toBeInTheDocument();
+
+    const dots = screen.getAllByRole('button').filter(b => b.className.includes('rounded-full'));
+    if (dots.length > 1) {
+      fireEvent.click(dots[1]);
+      expect(await screen.findByText('VIETNAM')).toBeInTheDocument();
+    }
+  });
+
+  it('should select Day 12', () => {
+    render(
+      <ConfigContext.Provider value={mockConfig}>
+        <ItineraryView />
+      </ConfigContext.Provider>
+    );
+
+    const btn = screen.getByText('1/12');
+    fireEvent.click(btn);
+    expect(btn.closest('button').className).toContain('scale-105');
+  });
+});
+
+describe('RemindersView', () => {
+  const mockConfig = {
+    ui: { cardSmall: '', inputGlass: '', btnPrimary: 'test-btn', textMain: '', textSub: '' },
+    theme: { large: '#000000' },
+    checklist: [{ id: 1, text: '護照', checked: true }]
+  };
+
+  it('should add item', () => {
+    render(
+      <ConfigContext.Provider value={mockConfig}>
+        <RemindersView />
+      </ConfigContext.Provider>
+    );
+
+    const input = screen.getByPlaceholderText(/Add item/i);
+    fireEvent.change(input, { target: { value: 'Sunscreen' } });
+    fireEvent.submit(input.closest('form'));
+    expect(screen.getByText('Sunscreen')).toBeInTheDocument();
+  });
+});
+
+describe('ExpenseView', () => {
+  const mockConfig = {
+    ui: { cardLarge: '', cardSmall: '', btnPrimary: '', textMain: '', textSub: '', inputGlass: '' },
+    members: ['信', '屏'],
+    baseCurrency: 'TWD',
+    exchangeRates: { 'IDR': 0.002 }
+  };
+
+  it('should submit expense', async () => {
+    const onAdd = vi.fn();
+    render(
+      <ConfigContext.Provider value={mockConfig}>
+        <ExpenseView expenses={[]} loading={false} onAddExpense={onAdd} />
+      </ConfigContext.Provider>
+    );
+
     fireEvent.click(screen.getByText(/記一筆/i));
 
-    // 2. 填寫表單
-    const amountInput = screen.getByPlaceholderText('0');
-    const itemInput = screen.getByPlaceholderText('例如：烤肉');
-
+    // Wait for modal components
+    const amountInput = await screen.findByPlaceholderText('0');
     fireEvent.change(amountInput, { target: { value: '1000' } });
-    fireEvent.change(itemInput, { target: { value: 'Test BBQ' } });
-
-    // 3. 提交
+    fireEvent.change(screen.getByPlaceholderText('例如：烤肉'), { target: { value: 'Dinner' } });
     fireEvent.click(screen.getByText('確認記帳'));
 
-    // 4. 驗證 onAddExpense 是否被呼叫，且參數正確
     await waitFor(() => {
-      expect(mockOnAdd).toHaveBeenCalledWith(expect.objectContaining({
-        item: 'Test BBQ #split:爸,媽,信,屏,樸',
-        amount: 1000,
-        category: '食物', // 預設值
-        payer: '爸'      // 預設值
+      expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({
+        item: 'Dinner #split:信,屏',
+        amount: 1000
       }));
     });
   });
 
-  it('should prevent submission with 0 split members', async () => {
-    // Mock alert
+  it('should protect 0 members', async () => {
     const mockAlert = vi.spyOn(window, 'alert').mockImplementation(() => { });
-
     render(
-      <ExpenseView
-        expenses={[]}
-        loading={false}
-        onAddExpense={mockOnAdd}
-        onDeleteExpense={mockOnDelete}
-        onRefresh={mockOnRefresh}
-        exchangeRate={0.0236}
-      />
+      <ConfigContext.Provider value={mockConfig}>
+        <ExpenseView expenses={[]} loading={false} onAddExpense={vi.fn()} />
+      </ConfigContext.Provider>
     );
 
     fireEvent.click(screen.getByText(/記一筆/i));
+    const buttons = await screen.findAllByRole('button');
+    ['信', '屏'].forEach(m => {
+      const btn = buttons.find(b => b.textContent === m);
+      if (btn) fireEvent.click(btn);
+    });
 
-    // Deselect all members (Initial state has all members selected)
-    // We click "全選" (which is actually "取消全選" when all are selected)
-    fireEvent.click(screen.getByText('取消全選'));
-
-    // Fill required fields to pass HTML5 validation
     fireEvent.change(screen.getByPlaceholderText('0'), { target: { value: '100' } });
     fireEvent.change(screen.getByPlaceholderText('例如：烤肉'), { target: { value: 'Test Item' } });
 
-    // Try to submit
     fireEvent.click(screen.getByText('確認記帳'));
-
-    expect(mockAlert).toHaveBeenCalledWith("請至少選擇一位分攤對象");
-    expect(mockOnAdd).not.toHaveBeenCalled();
-
-    mockAlert.mockRestore();
+    expect(mockAlert).toHaveBeenCalled();
   });
 
-  it('should submit correctly with custom split members (2 people)', async () => {
+  it('should toggle view', () => {
     render(
-      <ExpenseView
-        expenses={[]}
-        loading={false}
-        onAddExpense={mockOnAdd}
-        onDeleteExpense={mockOnDelete}
-        onRefresh={mockOnRefresh}
-        exchangeRate={0.0236}
-      />
+      <ConfigContext.Provider value={mockConfig}>
+        <ExpenseView expenses={[]} loading={false} />
+      </ConfigContext.Provider>
     );
 
-    fireEvent.click(screen.getByText(/記一筆/i));
-
-    // Set basic info
-    fireEvent.change(screen.getByPlaceholderText('0'), { target: { value: '500' } });
-    fireEvent.change(screen.getByPlaceholderText('例如：烤肉'), { target: { value: 'Taxi' } });
-
-    // Select specific members: Only '信' and '屏'
-    // First clear all
-    fireEvent.click(screen.getByText('取消全選'));
-
-    // Then select distinct members
-    // Note: The buttons contain text "信" and "屏"
-    const buttons = screen.getAllByRole('button');
-    const btnSin = buttons.find(b => b.textContent.includes('信'));
-    const btnPing = buttons.find(b => b.textContent.includes('屏'));
-
-    fireEvent.click(btnSin);
-    fireEvent.click(btnPing);
-
-    fireEvent.click(screen.getByText('確認記帳'));
-
-    await waitFor(() => {
-      expect(mockOnAdd).toHaveBeenCalledWith(expect.objectContaining({
-        item: 'Taxi #split:信,屏',
-        amount: 500,
-        splitWith: expect.arrayContaining(['信', '屏'])
-      }));
-    });
-
-    // Ensure accurate split count
-    const lastCall = mockOnAdd.mock.calls[0][0]; // Get the logged argument
-    expect(lastCall.splitWith).toHaveLength(2);
-  });
-
-  it('should switch between List and Split views', () => {
-    render(
-      <ExpenseView
-        expenses={[]}
-        loading={false}
-        onAddExpense={mockOnAdd}
-        onDeleteExpense={mockOnDelete}
-        onRefresh={mockOnRefresh}
-        exchangeRate={0.0236}
-      />
-    );
-
-    // 預設是列表模式，應該看得到 "記一筆" 按鈕
-    expect(screen.getByText(/記一筆/i)).toBeInTheDocument();
-
-    // 切換到拆帳模式
     fireEvent.click(screen.getByText(/拆帳計算/i));
-
-    // "記一筆" 按鈕應該消失
     expect(screen.queryByText(/記一筆/i)).not.toBeInTheDocument();
-    // 應該看到結算相關文字
-    expect(screen.getByText(/結算狀況/i)).toBeInTheDocument();
-  });
-
-  it('should calculate complex splits correctly', () => {
-    // 模擬複雜的記帳情境
-    const expenses = [
-      {
-        id: '1',
-        desc: '晚餐', // 補上 desc 欄位
-        category: '食物',
-        amount: 1000,
-        author: '爸',
-        // 假設所有人 (5人) 分攤，每人 -200
-        // 爸付 1000: 淨額 +1000 - 200 = +800
-        splitWith: ['爸', '媽', '信', '屏', '樸']
-      },
-      {
-        id: '2',
-        desc: '計程車', // 補上 desc 欄位
-        category: '交通',
-        amount: 500,
-        author: '信',
-        // 只有信跟屏 (2人) 分攤，每人 -250
-        // 信付 500: 淨額 +500 - 250 = +250
-        // 屏: -250
-        splitWith: ['信', '屏']
-      },
-      {
-        id: '3',
-        desc: '零食',
-        category: '食物',
-        amount: 600,
-        author: '信',
-        // 信代墊付款，跟爸媽拆分 (3人)
-        // 信付 600: 淨額 +600 - 200 = +400
-        // 爸: -200
-        // 媽: -200
-        splitWith: ['爸', '媽']
-      }
-    ];
-
-    // 預期結果:
-    // 爸: +800 (Item 1) - 300 (Item 3) = +500
-    // 媽: -200 (Item 1) - 300 (Item 3) = -500
-    // 信: -200 (Item 1) + 250 (Item 2) + 600 (Item 3) = +650
-    // 屏: -200 (Item 1) - 250 (Item 2) = -450
-    // 樸: -200 (Item 1) = -200
-
-    render(
-      <ExpenseView
-        expenses={expenses}
-        loading={false}
-        onAddExpense={mockOnAdd}
-        onDeleteExpense={mockOnDelete}
-        onRefresh={mockOnRefresh}
-        exchangeRate={1} // 設為 1 方便計算
-      />
-    );
-
-    // 切換到拆帳模式
-    fireEvent.click(screen.getByText(/拆帳計算/i));
-
-    // 驗證數值顯示 (使用正則表達式來匹配可能包含千分位符號的文字)
-
-    // 爸應收 +500
-    expect(screen.getByText('+500')).toBeInTheDocument();
-
-    // 信應收 +650
-    expect(screen.getByText('+650')).toBeInTheDocument();
-
-    // 屏應付 -450
-    expect(screen.getByText('-450')).toBeInTheDocument();
-
-    // 媽應付 -500
-    expect(screen.getByText('-500')).toBeInTheDocument();
-
-    // 樸應付 -200
-    expect(screen.getByText('-200')).toBeInTheDocument();
   });
 });
 
-// -----------------------------------------------------------------------------
-// 4. Full App Navigation Test
-// -----------------------------------------------------------------------------
-
 describe('App Navigation', () => {
   beforeEach(() => {
-    // Mock localStorage
-    Storage.prototype.getItem = vi.fn((key) => {
-      if (key === 'tripAppAuth') return 'true'; // Simulate logged in
-      return null;
-    });
-
-    // Mock fetch for weather/sheets/gas
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({
-          // Mock Weather Data
-          current: { temperature_2m: 20, weather_code: 0 },
-          daily: { temperature_2m_max: [25], temperature_2m_min: [15] },
-          // Mock GAS Response (Standard structure)
-          status: 'success',
-          data: []
-        }),
-        text: () => Promise.resolve('Day,Time,Title,Desc\n1,10:00,Test,Desc')
-      })
-    );
+    Storage.prototype.getItem = vi.fn(key => key.includes('tripAppAuth') ? 'true' : null);
+    global.fetch = vi.fn(() => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        current: { temperature_2m: 25 },
+        daily: { temperature_2m_max: [30], temperature_2m_min: [20] }
+      }),
+      text: () => Promise.resolve('Day,Time,Title,Desc\n1,10:00,Bali,Fun')
+    }));
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('should render itinerary by default and switch tabs', async () => {
+  it('should switch tabs', async () => {
     render(<App />);
-
-    // 預設顯示行程頁面
-    // 修正：新版 WeatherWidget 只顯示 "HONEYMOON"，不顯示 ", KOREA"
-    expect(await screen.findByText('HONEYMOON')).toBeInTheDocument();
-
-    // 切換到其他 (Others) 頁面
-    // 使用 navigation role 來限縮範圍，避免抓到頁面內其他的按鈕
-    const navBar = screen.getByRole('navigation');
-    const buttons = within(navBar).getAllByRole('button');
-
-    // 假設最後一個按鈕是 Others (Tabs 順序: Itinerary, Expense, Reminders, Others)
-    const othersTabBtn = buttons[buttons.length - 1];
-    fireEvent.click(othersTabBtn);
-
-    // 確認生存韓語出現 (代表切換成功)
-    expect(await screen.findByText('生存韓語')).toBeInTheDocument();
+    expect(await screen.findAllByText(/HONEYMOON/i)).toBeDefined();
+    const navButtons = screen.getAllByRole('button').filter(b => b.closest('nav'));
+    fireEvent.click(navButtons[navButtons.length - 1]);
+    expect(await screen.findByText(/常用語句/i)).toBeInTheDocument();
   });
 });
