@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,9 @@
     <meta name="description" content="VC 的旅行計畫管理系統。包含 2025 首爾行及 2026 蜜月旅行計畫。">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+TC:wght@300;400;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --primary: #ffffff;
@@ -70,8 +73,17 @@
         }
 
         @keyframes animate {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; border-radius: 0; }
-            100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; border-radius: 50%; }
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+                border-radius: 0;
+            }
+
+            100% {
+                transform: translateY(-1000px) rotate(720deg);
+                opacity: 0;
+                border-radius: 50%;
+            }
         }
 
         header {
@@ -187,11 +199,17 @@
         }
 
         @media (max-width: 768px) {
-            h1 { font-size: 2.5rem; }
-            .card { width: 100%; }
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .card {
+                width: 100%;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="bg-gradient"></div>
     <ul class="circles">
@@ -212,15 +230,15 @@
     <div class="container">
         <a href="seoul-trip-2025" id="link-seoul" class="card">
             <div class="icon">🎎</div>
-            <h2>首爾 2025</h2>
-            <p>與親愛家人的 2025 首爾春季之旅。包含行程、開銷追蹤與景點紀錄。</p>
+            <h2>首爾 2026</h2>
+            <p>與親愛家人的 2026 首爾春季之旅。</p>
             <div class="btn">前往首爾</div>
         </a>
 
         <a href="honeymoon-trip-2026" id="link-honeymoon" class="card">
             <div class="icon">💍</div>
             <h2>蜜月旅行 2026</h2>
-            <p>即將到來的 2026 澳洲、大溪地蜜月冒險。整合三國天氣與多幣別記帳。</p>
+            <p>與最愛老婆的 2026 蜜月旅行。</p>
             <div class="btn">前往蜜月</div>
         </a>
     </div>
@@ -229,4 +247,5 @@
         &copy; 2025-2026 VC Travel Management. All Rights Reserved.
     </footer>
 </body>
+
 </html>

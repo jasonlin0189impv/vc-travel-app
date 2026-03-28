@@ -27,24 +27,21 @@ permissions:
   contents: write
 
 jobs:
-  deploy:
-    name: Build and Deploy Services
+  # 1. 建構首爾 Job
+  build-seoul:
+    name: Build Seoul
+    if: ${{ github.event.inputs.service == 'seoul' || github.event.inputs.service == 'both' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.target_branch }}
-          fetch-depth: 0
-
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      # Build Seoul
-      - name: Build Seoul
-        if: ${{ github.event.inputs.service == 'seoul' || github.event.inputs.service == 'both' }}
+      - name: Install and Build
         working-directory: ./seoul-trip-2025
         run: |
           npm install
@@ -55,10 +52,27 @@ jobs:
           VITE_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_GOOGLE_FORM_ACTION_URL }}
           VITE_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_CSV_URL }}
           VITE_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_PLAN_CSV_URL }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seoul-dist
+          path: seoul-trip-2025/dist/
 
-      # Build Honeymoon
-      - name: Build Honeymoon
-        if: ${{ github.event.inputs.service == 'honeymoon' || github.event.inputs.service == 'both' }}
+  # 2. 建構蜜月 Job
+  build-honeymoon:
+    name: Build Honeymoon
+    if: ${{ github.event.inputs.service == 'honeymoon' || github.event.inputs.service == 'both' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install and Build
         working-directory: ./honeymoon-trip-2026
         run: |
           npm install
@@ -69,41 +83,72 @@ jobs:
           VITE_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_GOOGLE_FORM_ACTION_URL }}
           VITE_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_CSV_URL }}
           VITE_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_PLAN_CSV_URL }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: honeymoon-dist
+          path: honeymoon-trip-2026/dist/
 
-      # Prepare all folders for deployment
-      - name: Prepare Final Dist
-        run: |
-          mkdir -p final-dist
-          
-          # 1. 處理根目錄檔案 (Handle Root)
-          # 只有在部署 root 或 both 時，我們才會主動將 index.html 放入最終發布目錄
-          if [[ "${{ github.event.inputs.service }}" == "root" || "${{ github.event.inputs.service }}" == "both" ]]; then
-            cp index.html final-dist/
-          fi
-          
-          # 2. 處理首爾檔案 (Handle Seoul)
-          if [[ "${{ github.event.inputs.service }}" == "seoul" || "${{ github.event.inputs.service }}" == "both" ]]; then
-            mkdir -p final-dist/seoul-trip-2025
-            cp -r seoul-trip-2025/dist/* final-dist/seoul-trip-2025/
-          fi
-          
-          # 3. 處理蜜月檔案 (Handle Honeymoon)
-          if [[ "${{ github.event.inputs.service }}" == "honeymoon" || "${{ github.event.inputs.service }}" == "both" ]]; then
-            mkdir -p final-dist/honeymoon-trip-2026
-            cp -r honeymoon-trip-2026/dist/* final-dist/honeymoon-trip-2026/
-          fi
+  # 3. 處理入口網站 Job
+  build-root:
+    name: Build Root Portal
+    if: ${{ github.event.inputs.service == 'root' || github.event.inputs.service == 'both' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: root-dist
+          path: index.html
 
-      - name: Deploy to gh-pages
+  # 4. 統一發布 Job
+  deploy:
+    name: Atomic Deployment
+    needs: [build-seoul, build-honeymoon, build-root]
+    if: always() && !cancelled() && (needs.build-seoul.result == 'success' || needs.build-honeymoon.result == 'success' || needs.build-root.result == 'success' || (needs.build-seoul.result == 'skipped' && needs.build-honeymoon.result == 'skipped' && needs.build-root.result == 'skipped'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Work Directory
+        run: mkdir -p final-deploy
+
+      # 下載 Artifacts (僅下載存在的部分)
+      - name: Download Seoul Artifact
+        if: needs.build-seoul.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: seoul-dist
+          path: final-deploy/seoul-trip-2025
+
+      - name: Download Honeymoon Artifact
+        if: needs.build-honeymoon.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: honeymoon-dist
+          path: final-deploy/honeymoon-trip-2026
+
+      - name: Download Root Artifact
+        if: needs.build-root.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: root-dist
+          path: ./root-temp
+
+      - name: Move Root Index
+        if: needs.build-root.result == 'success'
+        run: cp root-temp/index.html final-deploy/index.html
+
+      # 執行部署
+      - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: final-dist
+          folder: final-deploy
           branch: gh-pages
-          # 策略說明：
-          # 'both' 或 'root'：使用 clean: true。這會清除除了發布目錄以外的所有舊內容，
-          #                有效地將舊的根目錄首爾檔案清空，並讓新的 index.html 成為入口。
-          # 'seoul' 或 'honeymoon'：使用 clean: false 並指定 target-folder，以防誤刪其他已存在的旅程內容。
+          # 策略：如果更新了 Root 或 Both，則清理舊檔案。如果是個別更新，則不清理其他資料夾。
           clean: ${{ github.event.inputs.service == 'both' || github.event.inputs.service == 'root' }}
-          # 如果 clean: true，我們必須排除未在本次建構清單中的子目錄，避免意外刪除目前的線上內容。
           clean-exclude: |
             ${{ (github.event.inputs.service == 'seoul' || github.event.inputs.service == 'root') && 'honeymoon-trip-2026/' || '' }}
             ${{ (github.event.inputs.service == 'honeymoon' || github.event.inputs.service == 'root') && 'seoul-trip-2025/' || '' }}
