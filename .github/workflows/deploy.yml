@@ -20,8 +20,7 @@ on:
         options:
           - main
           - develop
-          - feature/honeymoon-travel-trip
-          - feature/seoul-travel-trip
+          - feat/honeymoon-trip-2026
 
 permissions:
   contents: write
