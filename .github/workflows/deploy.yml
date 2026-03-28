@@ -1,0 +1,100 @@
+name: Deploy Trip Service
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "選擇要部署的服務 (Service to Deploy)"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - seoul
+          - honeymoon
+          - both
+      target_branch:
+        description: "選擇要部署的來源分支 (Source Branch)"
+        required: true
+        default: "main"
+        type: choice
+        options:
+          - main
+          - develop
+          - feature/seoul-travel-trip
+          - feature/honeymoon-travel-trip
+
+permissions:
+  contents: write
+
+jobs:
+  # 部署首爾 2025
+  deploy-seoul:
+    name: Deploy Seoul Trip
+    # 判斷式：如果選 seoul 或 both 才執行
+    if: ${{ github.event.inputs.service == 'seoul' || github.event.inputs.service == 'both' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install and Build Seoul
+        working-directory: ./seoul-trip-2025
+        run: |
+          npm install
+          npm run test
+          npm run build
+        env:
+          VITE_AUTH_PIN: ${{ secrets.VITE_AUTH_PIN }}
+          VITE_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_GOOGLE_FORM_ACTION_URL }}
+          VITE_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_CSV_URL }}
+          VITE_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_PLAN_CSV_URL }}
+
+      - name: Deploy to gh-pages/seoul
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: seoul-trip-2025/dist
+          branch: gh-pages
+          target-folder: seoul-trip-2025
+
+  # 部署蜜月 2026
+  deploy-honeymoon:
+    name: Deploy Honeymoon Trip
+    # 判斷式：如果選 honeymoon 或 both 才執行
+    if: ${{ github.event.inputs.service == 'honeymoon' || github.event.inputs.service == 'both' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install and Build Honeymoon
+        working-directory: ./honeymoon-trip-2026
+        run: |
+          npm install
+          npm run test
+          npm run build
+        env:
+          VITE_AUTH_PIN: ${{ secrets.VITE_AUTH_PIN }}
+          VITE_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_GOOGLE_FORM_ACTION_URL }}
+          VITE_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_CSV_URL }}
+          VITE_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_GOOGLE_SHEET_PLAN_CSV_URL }}
+
+      - name: Deploy to gh-pages/honeymoon
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: honeymoon-trip-2026/dist
+          branch: gh-pages
+          target-folder: honeymoon-trip-2026
