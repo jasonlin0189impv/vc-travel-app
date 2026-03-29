@@ -1,0 +1,158 @@
+name: Deploy Trip Service
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "選擇要部署的服務 (Service to Deploy)"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - seoul
+          - honeymoon
+          - both
+          - root
+      target_branch:
+        description: "選擇要部署的來源分支 (Source Branch)"
+        required: true
+        default: "main"
+        type: choice
+        options:
+          - main
+          - develop
+
+permissions:
+  contents: write
+
+jobs:
+  # 1. 建構首爾 Job
+  build-seoul:
+    name: Build Seoul
+    if: ${{ github.event.inputs.service == 'seoul' || github.event.inputs.service == 'both' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install and Build
+        working-directory: ./seoul-trip-2025
+        run: |
+          npm install
+          npm run test
+          npm run build
+        env:
+          VITE_SEOUL_AUTH_PIN: ${{ secrets.VITE_SEOUL_AUTH_PIN }}
+          VITE_SEOUL_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_SEOUL_GOOGLE_FORM_ACTION_URL }}
+          VITE_SEOUL_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_SEOUL_GOOGLE_SHEET_CSV_URL }}
+          VITE_SEOUL_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_SEOUL_GOOGLE_SHEET_PLAN_CSV_URL }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seoul-dist
+          path: seoul-trip-2025/dist/
+
+  # 2. 建構蜜月 Job
+  build-honeymoon:
+    name: Build Honeymoon
+    if: ${{ github.event.inputs.service == 'honeymoon' || github.event.inputs.service == 'both' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install and Build
+        working-directory: ./honeymoon-trip-2026
+        run: |
+          npm install
+          npm run test
+          npm run build
+        env:
+          VITE_HONEYMOON_AUTH_PIN: ${{ secrets.VITE_HONEYMOON_AUTH_PIN }}
+          VITE_HONEYMOON_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_HONEYMOON_GOOGLE_FORM_ACTION_URL }}
+          VITE_HONEYMOON_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_HONEYMOON_GOOGLE_SHEET_CSV_URL }}
+          VITE_HONEYMOON_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_HONEYMOON_GOOGLE_SHEET_PLAN_CSV_URL }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: honeymoon-dist
+          path: honeymoon-trip-2026/dist/
+
+  # 3. 處理入口網站 Job
+  build-root:
+    name: Build Root Portal
+    if: ${{ github.event.inputs.service == 'root' || github.event.inputs.service == 'both' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: root-dist
+          path: index.html
+
+  # 4. 統一發布 Job
+  deploy:
+    name: Atomic Deployment
+    needs: [build-seoul, build-honeymoon, build-root]
+    if: always() && !cancelled() && (needs.build-seoul.result == 'success' || needs.build-honeymoon.result == 'success' || needs.build-root.result == 'success' || (needs.build-seoul.result == 'skipped' && needs.build-honeymoon.result == 'skipped' && needs.build-root.result == 'skipped'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+
+      - name: Create Work Directory
+        run: mkdir -p final-deploy
+
+      # 下載 Artifacts (僅下載存在的部分)
+      - name: Download Seoul Artifact
+        if: needs.build-seoul.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: seoul-dist
+          path: final-deploy/seoul-trip-2025
+
+      - name: Download Honeymoon Artifact
+        if: needs.build-honeymoon.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: honeymoon-dist
+          path: final-deploy/honeymoon-trip-2026
+
+      - name: Download Root Artifact
+        if: needs.build-root.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: root-dist
+          path: ./root-temp
+
+      - name: Move Root Index
+        if: needs.build-root.result == 'success'
+        run: cp root-temp/index.html final-deploy/index.html
+
+      # 執行部署
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: final-deploy
+          branch: gh-pages
+          # 策略：如果更新了 Root 或 Both，則清理舊檔案。如果是個別更新，則不清理其他資料夾。
+          clean: ${{ github.event.inputs.service == 'both' || github.event.inputs.service == 'root' }}
+          clean-exclude: |
+            ${{ (github.event.inputs.service == 'seoul' || github.event.inputs.service == 'root') && 'honeymoon-trip-2026/' || '' }}
+            ${{ (github.event.inputs.service == 'honeymoon' || github.event.inputs.service == 'root') && 'seoul-trip-2025/' || '' }}
