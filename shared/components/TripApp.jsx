@@ -205,7 +205,7 @@ export const ItineraryView = () => {
   const handleSaveItem = async () => {
     setIsSaving(true);
     const currentId = selectedItem.id ? String(selectedItem.id) : null;
-    const action = currentId && !currentId.startsWith('new-') ? 'update' : 'create';
+    const action = currentId && !currentId.startsWith('new') ? 'update' : 'create';
     const payload = { ...editForm, id: action === 'update' ? currentId : undefined, day: activeDay };
     const res = await apiRequest(action, payload);
     if (res.status === 'success') { await fetchItinerary(true); setSelectedItem(null); setIsEditing(false); } else { alert("儲存失敗: " + res.message); }
@@ -216,7 +216,7 @@ export const ItineraryView = () => {
     if (!deletingItem) return;
     setIsSaving(true);
     const currentId = deletingItem.id ? String(deletingItem.id) : null;
-    if (currentId && !currentId.startsWith('new-')) {
+    if (currentId && !currentId.startsWith('new')) {
       const res = await apiRequest('delete', { id: currentId });
       if (res.status === 'success') { await fetchItinerary(true); } else { alert("刪除失敗"); }
     } else {
