@@ -122,12 +122,21 @@ describe('Itinerary & Weather Switching', () => {
       </ConfigContext.Provider>
     );
 
+    // In carousel mode, all locations are rendered in the DOM
     expect(await screen.findByText('BALI')).toBeInTheDocument();
+    expect(await screen.findByText('VIETNAM')).toBeInTheDocument();
 
     const dots = screen.getAllByRole('button').filter(b => b.className.includes('rounded-full'));
     if (dots.length > 1) {
+      // Check that the first dot is initially active
+      expect(dots[0].className).toContain('scale-125');
+      
       fireEvent.click(dots[1]);
-      expect(await screen.findByText('VIETNAM')).toBeInTheDocument();
+      
+      // Wait for the active state to switch to the second dot
+      await waitFor(() => {
+        expect(dots[1].className).toContain('scale-125');
+      });
     }
   });
 

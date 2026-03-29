@@ -143,13 +143,6 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
                     <MapPin size={12} />
                     {loc.name}
                   </div>
-                  {weatherLocations.length > 1 && (
-                    <div className="flex gap-2">
-                      {weatherLocations.map((_, dotIdx) => (
-                        <button key={dotIdx} onClick={() => scrollToIdx(dotIdx)} className={`w-2 h-2 rounded-full transition-all ${activeLocationIdx === dotIdx ? 'bg-white scale-125' : 'bg-white/40'}`} />
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex justify-between items-end z-10 w-full">
@@ -179,6 +172,13 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
           );
         })}
       </div>
+      {weatherLocations.length > 1 && (
+        <div className="absolute top-8 right-10 flex gap-2 z-20">
+          {weatherLocations.map((_, dotIdx) => (
+            <button key={dotIdx} onClick={() => scrollToIdx(dotIdx)} className={`w-2 h-2 rounded-full transition-all ${activeLocationIdx === dotIdx ? 'bg-white scale-125' : 'bg-white/40'}`} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
