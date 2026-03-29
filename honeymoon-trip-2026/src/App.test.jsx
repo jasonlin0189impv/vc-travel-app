@@ -126,7 +126,8 @@ describe('Itinerary & Weather Switching', () => {
     expect(await screen.findByText('BALI')).toBeInTheDocument();
     expect(await screen.findByText('VIETNAM')).toBeInTheDocument();
 
-    const dots = screen.getAllByRole('button').filter(b => b.className.includes('rounded-full'));
+    // Filter buttons specifically to find the carousel dots (they have 'w-2 h-2')
+    const dots = screen.getAllByRole('button').filter(b => b.className.includes('w-2 h-2'));
     if (dots.length > 1) {
       // Check that the first dot is initially active
       expect(dots[0].className).toContain('scale-125');

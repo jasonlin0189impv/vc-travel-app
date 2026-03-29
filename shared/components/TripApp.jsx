@@ -95,7 +95,11 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
   const scrollToIdx = (idx) => {
     if (scrollRef.current) {
       const width = scrollRef.current.clientWidth;
-      scrollRef.current.scrollTo({ left: idx * width, behavior: 'smooth' });
+      if (typeof scrollRef.current.scrollTo === 'function') {
+        scrollRef.current.scrollTo({ left: idx * width, behavior: 'smooth' });
+      } else {
+        scrollRef.current.scrollLeft = idx * width;
+      }
     }
     setActiveLocationIdx(idx);
   };
