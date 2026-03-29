@@ -78,6 +78,27 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
   const [weatherData, setWeatherData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeLocationIdx, setActiveLocationIdx] = useState(0);
+  const scrollRef = React.useRef(null);
+
+  const handleScroll = (e) => {
+    const container = e.target;
+    const scrollLeft = container.scrollLeft;
+    const width = container.clientWidth;
+    if (width > 0) {
+      const newIdx = Math.round(scrollLeft / width);
+      if (newIdx !== activeLocationIdx && newIdx >= 0 && newIdx < weatherLocations.length) {
+        setActiveLocationIdx(newIdx);
+      }
+    }
+  };
+
+  const scrollToIdx = (idx) => {
+    if (scrollRef.current) {
+      const width = scrollRef.current.clientWidth;
+      scrollRef.current.scrollTo({ left: idx * width, behavior: 'smooth' });
+    }
+    setActiveLocationIdx(idx);
+  };
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -103,47 +124,60 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
   if (loading) return <div className={`w-full h-32 ${ui.cardSmall} animate-pulse mb-6`}></div>;
   if (!weatherLocations || weatherLocations.length === 0) return null;
 
-  const currentLocWeather = weatherData[activeLocationIdx];
-  const locName = weatherLocations[activeLocationIdx].name;
-
   return (
-    <div className={`${ui.cardLarge} rounded-[2.5rem] p-7 mb-6 flex flex-col relative overflow-hidden transition-all duration-300`}>
-      <div className={`absolute right-0 top-0 w-48 h-48 bg-white/20 rounded-full -mr-12 -mt-12 z-0`}></div>
-      <div className="flex items-center justify-between z-10 w-full mb-2">
-        <div className={`flex items-center gap-1.5 text-white/90 text-xs font-bold uppercase tracking-widest`}>
-          <MapPin size={12} />
-          {locName}
-        </div>
-        {weatherLocations.length > 1 && (
-          <div className="flex gap-2">
-            {weatherLocations.map((_, idx) => (
-              <button key={idx} onClick={() => setActiveLocationIdx(idx)} className={`w-2 h-2 rounded-full transition-all ${activeLocationIdx === idx ? 'bg-white scale-125' : 'bg-white/40'}`} />
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="relative mb-6">
+      <div 
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-1 px-1"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        {weatherLocations.map((loc, idx) => {
+          const currentLocWeather = weatherData[idx];
+          return (
+            <div key={idx} className="flex-shrink-0 w-full snap-center px-1">
+              <div className={`${ui.cardLarge} rounded-[2.5rem] p-7 flex flex-col relative overflow-hidden transition-all duration-300`}>
+                <div className={`absolute right-0 top-0 w-48 h-48 bg-white/20 rounded-full -mr-12 -mt-12 z-0`}></div>
+                <div className="flex items-center justify-between z-10 w-full mb-2">
+                  <div className={`flex items-center gap-1.5 text-white/90 text-xs font-bold uppercase tracking-widest`}>
+                    <MapPin size={12} />
+                    {loc.name}
+                  </div>
+                  {weatherLocations.length > 1 && (
+                    <div className="flex gap-2">
+                      {weatherLocations.map((_, dotIdx) => (
+                        <button key={dotIdx} onClick={() => scrollToIdx(dotIdx)} className={`w-2 h-2 rounded-full transition-all ${activeLocationIdx === dotIdx ? 'bg-white scale-125' : 'bg-white/40'}`} />
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-      <div className="flex justify-between items-end z-10 w-full">
-        <div className="flex flex-col">
-          <span className={`text-7xl font-black text-white tracking-tighter leading-[0.9]`}>
-            {currentLocWeather ? Math.round(currentLocWeather.current?.temperature_2m) : "--"}°
-          </span>
-          <div className={`flex gap-3 text-sm font-bold text-white/90 mt-2`}>
-            <span>H:{currentLocWeather ? Math.round(currentLocWeather.daily?.temperature_2m_max[0]) : "-"}°</span>
-            <span className="opacity-60">|</span>
-            <span>L:{currentLocWeather ? Math.round(currentLocWeather.daily?.temperature_2m_min[0]) : "-"}°</span>
-          </div>
-        </div>
-        <div className={`flex flex-col items-end gap-3`}>
-          {onRefresh && (
-            <button onClick={(e) => { e.stopPropagation(); onRefresh(); }} className={`p-2 rounded-full bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all`}>
-              <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} />
-            </button>
-          )}
-          <div className="p-4 bg-white/20 rounded-[1.5rem] border border-white/10 shadow-sm backdrop-blur-sm">
-            <CloudSun className="text-white" size={48} />
-          </div>
-        </div>
+                <div className="flex justify-between items-end z-10 w-full">
+                  <div className="flex flex-col">
+                    <span className={`text-7xl font-black text-white tracking-tighter leading-[0.9]`}>
+                      {currentLocWeather ? Math.round(currentLocWeather.current?.temperature_2m) : "--"}°
+                    </span>
+                    <div className={`flex gap-3 text-sm font-bold text-white/90 mt-2`}>
+                      <span>H:{currentLocWeather ? Math.round(currentLocWeather.daily?.temperature_2m_max[0]) : "-"}°</span>
+                      <span className="opacity-60">|</span>
+                      <span>L:{currentLocWeather ? Math.round(currentLocWeather.daily?.temperature_2m_min[0]) : "-"}°</span>
+                    </div>
+                  </div>
+                  <div className={`flex flex-col items-end gap-3`}>
+                    {onRefresh && (
+                      <button onClick={(e) => { e.stopPropagation(); onRefresh(); }} className={`p-2 rounded-full bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all`}>
+                        <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} />
+                      </button>
+                    )}
+                    <div className="p-4 bg-white/20 rounded-[1.5rem] border border-white/10 shadow-sm backdrop-blur-sm">
+                      <CloudSun className="text-white" size={48} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
