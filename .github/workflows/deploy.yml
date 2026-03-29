@@ -112,6 +112,11 @@ jobs:
     if: always() && !cancelled() && (needs.build-seoul.result == 'success' || needs.build-honeymoon.result == 'success' || needs.build-root.result == 'success' || (needs.build-seoul.result == 'skipped' && needs.build-honeymoon.result == 'skipped' && needs.build-root.result == 'skipped'))
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch }}
+
       - name: Create Work Directory
         run: mkdir -p final-deploy
 
