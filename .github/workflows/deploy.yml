@@ -21,7 +21,6 @@ on:
         options:
           - main
           - develop
-          - feat/honeymoon-trip-2026
 
 permissions:
   contents: write
