@@ -23,11 +23,11 @@ const config = {
     divider: "divide-[#eedbc5]",
     border: "border-[#eedbc5]"
   },
-  authPin: getEnv("VITE_AUTH_PIN", "2026"),
+  authPin: getEnv("VITE_HONEYMOON_AUTH_PIN", "2026"),
   api: {
-    planCsvUrl: getEnv("VITE_GOOGLE_SHEET_PLAN_CSV_URL", ""),
-    sheetCsvUrl: getEnv("VITE_GOOGLE_SHEET_CSV_URL", ""),
-    formActionUrl: getEnv("VITE_GOOGLE_FORM_ACTION_URL", ""),
+    planCsvUrl: getEnv("VITE_HONEYMOON_GOOGLE_SHEET_PLAN_CSV_URL", ""),
+    sheetCsvUrl: getEnv("VITE_HONEYMOON_GOOGLE_SHEET_CSV_URL", ""),
+    formActionUrl: getEnv("VITE_HONEYMOON_GOOGLE_FORM_ACTION_URL", ""),
     formEntryIds: { ITEM: "entry.535523921", AMOUNT: "entry.304377441", PAYER: "entry.1459657419", CATEGORY: "entry.1495061883" }
   },
   members: ['信', '屏'],

@@ -389,7 +389,17 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
       <div className={`${ui.cardLarge} rounded-[2.5rem] p-8 mb-8 relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/20 rounded-full -mt-10 -mr-10"></div>
         <div className="relative z-10">
-          <p className={`text-white/80 text-sm font-bold uppercase tracking-widest mb-2`}>Total Expenses</p>
+          <div className="flex justify-between items-start">
+            <p className={`text-white/80 text-sm font-bold uppercase tracking-widest mb-2`}>Total Expenses</p>
+            {onRefresh && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onRefresh(); }} 
+                className={`p-2 rounded-full bg-white/20 text-white hover:bg-white/30 active:scale-95 transition-all -mt-2 -mr-2`}
+              >
+                <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+              </button>
+            )}
+          </div>
           <div className="flex items-baseline gap-2 mb-4"><span className="text-2xl font-light opacity-80">{baseCurrency}</span><h2 className="text-5xl font-black tracking-tight">{totalBase.toLocaleString()}</h2></div>
         </div>
       </div>
@@ -579,7 +589,16 @@ export default function TripApp({ config }) {
     setExpenses(prev => [newItem, ...prev]);
   };
 
-  const handleDeleteExpense = (id) => { const currentPending = JSON.parse(localStorage.getItem(`pendingExpenses_${config.title.main}`) || '[]'); const newPending = currentPending.filter(item => item.id !== id); localStorage.setItem(`pendingExpenses_${config.title.main}`, JSON.stringify(newPending)); setExpenses(prev => prev.filter(item => item.id !== id)); };
+  const handleDeleteExpense = (id) => { 
+    if (id && String(id).startsWith('sheet-')) {
+      alert("⚠️ 刪除失敗：此帳目已同步至遠端，無法直接刪除。\n請前往 Google Sheet 進行修改。");
+      return;
+    }
+    const currentPending = JSON.parse(localStorage.getItem(`pendingExpenses_${config.title.main}`) || '[]'); 
+    const newPending = currentPending.filter(item => item.id !== id); 
+    localStorage.setItem(`pendingExpenses_${config.title.main}`, JSON.stringify(newPending)); 
+    setExpenses(prev => prev.filter(item => item.id !== id)); 
+  };
 
   useEffect(() => { if (isAuthenticated) fetchExpenses(); }, [isAuthenticated]);
 
@@ -600,7 +619,25 @@ export default function TripApp({ config }) {
             </header>
             <main className="px-5">
               {activeTab === 'itinerary' && <ItineraryView />}
-              {activeTab === 'expense' && <ExpenseView expenses={expenses} loading={loadingExpenses} onRefresh={fetchExpenses} onDeleteExpense={handleDeleteExpense} onAddExpense={async (data) => { handleAddExpenseLocal(data); if (config.api.formActionUrl) { const fd = new FormData(); fd.append(config.api.formEntryIds.ITEM, data.item); fd.append(config.api.formEntryIds.AMOUNT, data.amount); fd.append(config.api.formEntryIds.CATEGORY, data.category); fd.append(config.api.formEntryIds.PAYER, data.payer); try { await fetch(config.api.formActionUrl, { method: 'POST', body: fd, mode: 'no-cors' }); } catch (e) { } } }} />}
+              {activeTab === 'expense' && <ExpenseView expenses={expenses} loading={loadingExpenses} onRefresh={fetchExpenses} onDeleteExpense={handleDeleteExpense} onAddExpense={async (data) => { 
+                handleAddExpenseLocal(data); 
+                if (config.api.formActionUrl) { 
+                  const fd = new FormData(); 
+                  fd.append(config.api.formEntryIds.ITEM, data.item); 
+                  fd.append(config.api.formEntryIds.AMOUNT, data.amount); 
+                  fd.append(config.api.formEntryIds.CATEGORY, data.category); 
+                  fd.append(config.api.formEntryIds.PAYER, data.payer); 
+                  try { 
+                    console.log("Submitting expense to:", config.api.formActionUrl);
+                    await fetch(config.api.formActionUrl, { method: 'POST', body: fd, mode: 'no-cors' }); 
+                    console.log("Submit attempt finished (no-cors)");
+                  } catch (e) { 
+                    console.error("Submit error:", e);
+                  } 
+                } else {
+                  console.warn("No formActionUrl configured");
+                }
+              }} />}
               {activeTab === 'reminders' && <RemindersView />}
               {activeTab === 'others' && <OthersView />}
             </main>
