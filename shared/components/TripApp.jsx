@@ -199,12 +199,30 @@ export const ItineraryView = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [deletingItem, setDeletingItem] = useState(null);
 
-  const apiRequest = async (action, payload = {}) => {
+  const apiRequest = async (action, payload = {}, timeout = 10000) => {
     if (!api.planCsvUrl) return { status: 'error', message: 'API URL missing' };
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
     try {
-      const response = await fetch(api.planCsvUrl, { method: 'POST', body: JSON.stringify({ action, ...payload }) });
-      return await response.json();
-    } catch (error) { return { status: 'error', message: error.toString() }; }
+      const response = await fetch(api.planCsvUrl, { 
+        method: 'POST', 
+        body: JSON.stringify({ action, ...payload }),
+        signal: controller.signal
+      });
+      clearTimeout(id);
+      if (!response.ok) throw new Error("Server responded with error status " + response.status);
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.warn("API response is not JSON:", text);
+        return { status: 'error', message: '回應格式錯誤' };
+      }
+    } catch (error) { 
+      clearTimeout(id);
+      console.warn(`API Error (${action}):`, error);
+      return { status: 'error', message: error.name === 'AbortError' ? '連線超時，請稍後再試' : error.toString() }; 
+    }
   };
 
   const fetchItinerary = async (isManualRefresh = false) => {
@@ -212,9 +230,10 @@ export const ItineraryView = () => {
     if (isManualRefresh) setLoading(true);
     try {
       const res = await apiRequest('read');
-      if (res.status === 'success') {
+      if (res.status === 'success' && Array.isArray(res.data)) {
         const parsedData = {};
         res.data.forEach(item => {
+          if (!item.id) return;
           item.id = String(item.id);
           if (item.time && String(item.time).includes('T')) {
             try {
@@ -228,11 +247,17 @@ export const ItineraryView = () => {
             parsedData[day].push(item);
           }
         });
-        Object.keys(parsedData).forEach(d => parsedData[d].sort((a, b) => a.time.localeCompare(b.time)));
+        Object.keys(parsedData).forEach(d => parsedData[d].sort((a, b) => (a.time || '').localeCompare(b.time || '')));
         setItineraryData(parsedData);
         localStorage.setItem(`itinerary_cache_${config.title.main}`, JSON.stringify(parsedData));
+      } else if (res.status === 'error') {
+        console.warn("API Error:", res.message);
       }
-    } catch (e) { console.error("Fetch error", e); } finally { setLoading(false); }
+    } catch (e) { 
+      console.error("Fetch error:", e); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   useEffect(() => {
@@ -597,8 +622,11 @@ export default function TripApp({ config }) {
   const fetchExpenses = async () => {
     if (!config.api.sheetCsvUrl) return;
     setLoadingExpenses(true);
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch(`${config.api.sheetCsvUrl}&t=${Date.now()}`);
+      const response = await fetch(`${config.api.sheetCsvUrl}&t=${Date.now()}`, { signal: controller.signal });
+      clearTimeout(id);
       if (response.ok) {
         const rows = smartParseCSV(await response.text());
         if (rows.length >= 2) {
