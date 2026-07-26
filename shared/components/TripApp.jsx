@@ -46,14 +46,40 @@ export const smartParseCSV = (csvText) => {
   return rows;
 };
 
+// 單一 Web App 請求：POST { pin, type, action, ...payload }
+// 不設 Content-Type → 瀏覽器送 text/plain → 免 CORS preflight（Apps Script 才收得到）
+export const apiCall = async (url, pin, type, action, payload = {}, onUnauthorized, timeout = 10000) => {
+  if (!url) return { status: 'error', message: 'API URL missing' };
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeout);
+  try {
+    const r = await fetch(url, { method: 'POST', body: JSON.stringify({ pin, type, action, ...payload }), signal: controller.signal });
+    clearTimeout(t);
+    const text = await r.text();
+    let res;
+    try { res = JSON.parse(text); } catch (e) { return { status: 'error', message: '回應格式錯誤' }; }
+    if (res && res.status === 'error' && res.message === 'unauthorized' && onUnauthorized) onUnauthorized();
+    return res;
+  } catch (e) {
+    clearTimeout(t);
+    return { status: 'error', message: e.name === 'AbortError' ? '連線超時，請稍後再試' : String(e) };
+  }
+};
+
 export const LoginView = ({ onLogin }) => {
   const config = useContext(ConfigContext);
-  const { ui, authPin, title } = config;
+  const { ui, api, title } = config;
   const [input, setInput] = useState('');
   const [error, setError] = useState(false);
-  const handleSubmit = (e) => {
+  const [checking, setChecking] = useState(false);
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (input === authPin) onLogin(); else { setError(true); setInput(''); }
+    setChecking(true);
+    // PIN 送去 web app 由伺服器比對（真正的 PIN 存在 Script Properties，不在前端）
+    const res = await apiCall(api && api.url, input, 'auth', 'login');
+    setChecking(false);
+    if (res.status === 'success') onLogin(input);
+    else { setError(true); setInput(''); }
   };
   return (
     <div className={`min-h-screen ${ui.bgMain} flex flex-col items-center justify-center p-6 ${ui.textMain}`}>
@@ -65,7 +91,7 @@ export const LoginView = ({ onLogin }) => {
         <p className={`text-white/80 text-xs mb-8 font-bold`}>請輸入 PIN 碼以解鎖行程</p>
         <form onSubmit={handleSubmit} className="w-full space-y-4">
           <div><input type="tel" value={input} onChange={(e) => { setInput(e.target.value); setError(false); }} placeholder="••••" className={`w-full bg-white/90 border-2 border-transparent focus:border-[${config.theme.small}] rounded-2xl py-4 px-6 text-center text-xl font-bold tracking-[0.5em] outline-none transition-all ${ui.textMain} placeholder-[${config.theme.small}]`} maxLength={6} />{error && <p className={`text-white text-xs text-center mt-2 font-bold animate-bounce`}>密碼錯誤</p>}</div>
-          <button type="submit" className={`w-full ${ui.btnSecondary} py-4 rounded-2xl text-lg shadow-md`}>進入旅程</button>
+          <button type="submit" disabled={checking} className={`w-full ${ui.btnSecondary} py-4 rounded-2xl text-lg shadow-md disabled:opacity-60`}>進入旅程</button>
         </form>
       </div>
     </div>
@@ -189,7 +215,7 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
 
 export const ItineraryView = () => {
   const config = useContext(ConfigContext);
-  const { ui, dates, api } = config;
+  const { ui, dates, api, _auth } = config;
   const [activeDay, setActiveDay] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
   const [itineraryData, setItineraryData] = useState({});
@@ -199,34 +225,11 @@ export const ItineraryView = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [deletingItem, setDeletingItem] = useState(null);
 
-  const apiRequest = async (action, payload = {}, timeout = 10000) => {
-    if (!api.planCsvUrl) return { status: 'error', message: 'API URL missing' };
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    try {
-      const response = await fetch(api.planCsvUrl, { 
-        method: 'POST', 
-        body: JSON.stringify({ action, ...payload }),
-        signal: controller.signal
-      });
-      clearTimeout(id);
-      if (!response.ok) throw new Error("Server responded with error status " + response.status);
-      const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        console.warn("API response is not JSON:", text);
-        return { status: 'error', message: '回應格式錯誤' };
-      }
-    } catch (error) { 
-      clearTimeout(id);
-      console.warn(`API Error (${action}):`, error);
-      return { status: 'error', message: error.name === 'AbortError' ? '連線超時，請稍後再試' : error.toString() }; 
-    }
-  };
+  const apiRequest = (action, payload = {}, timeout = 10000) =>
+    apiCall(api && api.url, _auth && _auth.pin, 'itinerary', action, payload, _auth && _auth.onUnauthorized, timeout);
 
   const fetchItinerary = async (isManualRefresh = false) => {
-    if (!api.planCsvUrl) return;
+    if (!(api && api.url)) return;
     if (isManualRefresh) setLoading(true);
     try {
       const res = await apiRequest('read');
@@ -607,6 +610,7 @@ export const OthersView = () => {
 export default function TripApp({ config }) {
   const [activeTab, setActiveTab] = useState('itinerary');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pin, setPin] = useState('');
   const [expenses, setExpenses] = useState([]);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
 
@@ -617,61 +621,61 @@ export default function TripApp({ config }) {
     { id: 'others', icon: <Grid /> }
   ];
 
-  useEffect(() => { if (localStorage.getItem(`tripAppAuth_${config.title.main}`) === 'true') setIsAuthenticated(true); }, []);
+  const authKey = `tripAppAuth_${config.title.main}`;
+  const pinKey = `tripAppPin_${config.title.main}`;
+
+  useEffect(() => {
+    if (localStorage.getItem(authKey) === 'true') {
+      setIsAuthenticated(true);
+      setPin(localStorage.getItem(pinKey) || ''); // ponytail: PIN 存使用者自己的 device（非 repo/bundle），是他本來就知道的值
+    }
+  }, []);
+
+  // 伺服器回 unauthorized（例如 PIN 被改）→ 登出，退回登入頁
+  const logout = () => {
+    setIsAuthenticated(false); setPin('');
+    localStorage.removeItem(authKey); localStorage.removeItem(pinKey);
+  };
+
+  // Expenses 分頁一列 {id,timestamp,item,amount,category,payer} → 畫面用的形狀（#split 從 item 拆出）
+  const parseExpenseRow = (row) => {
+    const item = String(row.item || '');
+    const m = item.match(/#split:(.*)/);
+    return {
+      id: row.id, timestamp: row.timestamp, desc: item, amount: parseFloat(row.amount) || 0,
+      category: row.category, author: row.payer,
+      splitWith: m ? m[1].split(',').map(s => s.trim()) : config.members,
+    };
+  };
 
   const fetchExpenses = async () => {
-    if (!config.api.sheetCsvUrl) return;
+    if (!config.api.url) return;
     setLoadingExpenses(true);
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 10000);
-    try {
-      const response = await fetch(`${config.api.sheetCsvUrl}&t=${Date.now()}`, { signal: controller.signal });
-      clearTimeout(id);
-      if (response.ok) {
-        const rows = smartParseCSV(await response.text());
-        if (rows.length >= 2) {
-          const headers = rows[0];
-          const getIndex = (k) => headers.findIndex(h => k.some(key => h.includes(key)));
-          const idxItem = getIndex(['項目', 'Item']); const idxAmount = getIndex(['金額']); const idxCategory = getIndex(['分類']); const idxPayer = getIndex(['付款人']); const idxTime = getIndex(['時間']);
-          let fetchedData = [];
-          for (let i = 1; i < rows.length; i++) {
-            const row = rows[i]; if (row.length < 2) continue;
-            let rawItem = idxItem > -1 ? row[idxItem] : row[1]; let splitWith = config.members; const splitMatch = rawItem.match(/#split:(.*)/); if (splitMatch) splitWith = splitMatch[1].split(',').map(s => s.trim());
-            fetchedData.push({ id: `sheet-${i}`, timestamp: idxTime > -1 ? row[idxTime] : row[0], desc: rawItem, amount: parseFloat((idxAmount > -1 ? row[idxAmount] : row[2]) || 0), category: idxCategory > -1 ? row[idxCategory] : row[3], author: idxPayer > -1 ? row[idxPayer] : (row[4] || ''), splitWith: splitWith });
-          }
-          const pendingItems = JSON.parse(localStorage.getItem(`pendingExpenses_${config.title.main}`) || '[]');
-          const validPending = pendingItems.filter(pending => { const isSynced = fetchedData.some(sheetItem => sheetItem.desc === pending.desc && Math.abs(sheetItem.amount - pending.amount) < 1 && sheetItem.author === pending.author); return !isSynced && (Date.now() - pending.createdAt) < 3600000; });
-          localStorage.setItem(`pendingExpenses_${config.title.main}`, JSON.stringify(validPending));
-          setExpenses([...validPending, ...fetchedData.reverse()]);
-        }
-      }
-    } catch (e) { console.warn("Fetch failed"); } finally { setLoadingExpenses(false); }
+    const res = await apiCall(config.api.url, pin, 'expense', 'read', {}, logout);
+    if (res.status === 'success' && Array.isArray(res.data)) setExpenses(res.data.map(parseExpenseRow).reverse());
+    setLoadingExpenses(false);
   };
 
-  const handleAddExpenseLocal = (data) => {
-    const newItem = { id: `local-${Date.now()}`, timestamp: new Date().toLocaleDateString(), desc: data.item, amount: data.amount, category: data.category, author: data.payer, splitWith: data.splitWith, isPending: true, createdAt: Date.now() };
-    const current = JSON.parse(localStorage.getItem(`pendingExpenses_${config.title.main}`) || '[]');
-    localStorage.setItem(`pendingExpenses_${config.title.main}`, JSON.stringify([newItem, ...current]));
-    setExpenses(prev => [newItem, ...prev]);
+  const handleAddExpense = async (data) => {
+    const res = await apiCall(config.api.url, pin, 'expense', 'create',
+      { item: data.item, amount: data.amount, category: data.category, payer: data.payer }, logout);
+    if (res.status === 'success') fetchExpenses(); else alert('記帳失敗: ' + (res.message || ''));
   };
 
-  const handleDeleteExpense = (id) => { 
-    if (id && String(id).startsWith('sheet-')) {
-      alert("⚠️ 刪除失敗：此帳目已同步至遠端，無法直接刪除。\n請前往 Google Sheet 進行修改。");
-      return;
-    }
-    const currentPending = JSON.parse(localStorage.getItem(`pendingExpenses_${config.title.main}`) || '[]'); 
-    const newPending = currentPending.filter(item => item.id !== id); 
-    localStorage.setItem(`pendingExpenses_${config.title.main}`, JSON.stringify(newPending)); 
-    setExpenses(prev => prev.filter(item => item.id !== id)); 
+  const handleDeleteExpense = async (id) => {
+    const res = await apiCall(config.api.url, pin, 'expense', 'delete', { id }, logout);
+    if (res.status === 'success') fetchExpenses(); else alert('刪除失敗: ' + (res.message || ''));
   };
 
   useEffect(() => { if (isAuthenticated) fetchExpenses(); }, [isAuthenticated]);
 
   return (
-    <ConfigContext.Provider value={config}>
+    <ConfigContext.Provider value={{ ...config, _auth: { pin, onUnauthorized: logout } }}>
       {!isAuthenticated ? (
-        <LoginView onLogin={() => { setIsAuthenticated(true); localStorage.setItem(`tripAppAuth_${config.title.main}`, 'true'); }} />
+        <LoginView onLogin={(enteredPin) => {
+          setPin(enteredPin); setIsAuthenticated(true);
+          localStorage.setItem(authKey, 'true'); localStorage.setItem(pinKey, enteredPin);
+        }} />
       ) : (
         <div className={`min-h-screen ${config.ui.bgMain} font-sans ${config.ui.textMain} flex justify-center`}>
           <div className={`w-full max-w-md min-h-screen relative shadow-2xl ${config.ui.bgMain}`}>
@@ -685,25 +689,7 @@ export default function TripApp({ config }) {
             </header>
             <main className="px-5">
               {activeTab === 'itinerary' && <ItineraryView />}
-              {activeTab === 'expense' && <ExpenseView expenses={expenses} loading={loadingExpenses} onRefresh={fetchExpenses} onDeleteExpense={handleDeleteExpense} onAddExpense={async (data) => { 
-                handleAddExpenseLocal(data); 
-                if (config.api.formActionUrl) { 
-                  const fd = new FormData(); 
-                  fd.append(config.api.formEntryIds.ITEM, data.item); 
-                  fd.append(config.api.formEntryIds.AMOUNT, data.amount); 
-                  fd.append(config.api.formEntryIds.CATEGORY, data.category); 
-                  fd.append(config.api.formEntryIds.PAYER, data.payer); 
-                  try { 
-                    console.log("Submitting expense to:", config.api.formActionUrl);
-                    await fetch(config.api.formActionUrl, { method: 'POST', body: fd, mode: 'no-cors' }); 
-                    console.log("Submit attempt finished (no-cors)");
-                  } catch (e) { 
-                    console.error("Submit error:", e);
-                  } 
-                } else {
-                  console.warn("No formActionUrl configured");
-                }
-              }} />}
+              {activeTab === 'expense' && <ExpenseView expenses={expenses} loading={loadingExpenses} onRefresh={fetchExpenses} onDeleteExpense={handleDeleteExpense} onAddExpense={handleAddExpense} />}
               {activeTab === 'reminders' && <RemindersView />}
               {activeTab === 'others' && <OthersView />}
             </main>

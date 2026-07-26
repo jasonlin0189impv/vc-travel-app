@@ -46,11 +46,6 @@ jobs:
           npm install
           npm run test
           npm run build
-        env:
-          VITE_SEOUL_AUTH_PIN: ${{ secrets.VITE_SEOUL_AUTH_PIN }}
-          VITE_SEOUL_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_SEOUL_GOOGLE_FORM_ACTION_URL }}
-          VITE_SEOUL_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_SEOUL_GOOGLE_SHEET_CSV_URL }}
-          VITE_SEOUL_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_SEOUL_GOOGLE_SHEET_PLAN_CSV_URL }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -77,11 +72,6 @@ jobs:
           npm install
           npm run test
           npm run build
-        env:
-          VITE_HONEYMOON_AUTH_PIN: ${{ secrets.VITE_HONEYMOON_AUTH_PIN }}
-          VITE_HONEYMOON_GOOGLE_FORM_ACTION_URL: ${{ secrets.VITE_HONEYMOON_GOOGLE_FORM_ACTION_URL }}
-          VITE_HONEYMOON_GOOGLE_SHEET_CSV_URL: ${{ secrets.VITE_HONEYMOON_GOOGLE_SHEET_CSV_URL }}
-          VITE_HONEYMOON_GOOGLE_SHEET_PLAN_CSV_URL: ${{ secrets.VITE_HONEYMOON_GOOGLE_SHEET_PLAN_CSV_URL }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:

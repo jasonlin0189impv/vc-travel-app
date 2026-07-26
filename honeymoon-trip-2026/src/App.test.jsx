@@ -32,14 +32,17 @@ describe('smartParseCSV', () => {
 // -----------------------------------------------------------------------------
 
 describe('LoginView', () => {
+  // PIN 現在由伺服器端 web app 驗證 → 用 mock fetch 模擬回應
   const mockConfig = {
     ui: { bgMain: '', textMain: '', cardLarge: '', btnSecondary: '' },
     theme: { small: '#ffffff', large: '#ffffff' },
     title: { main: 'HONEYMOON', year: '2026' },
-    authPin: '2026'
+    api: { url: 'https://mock-webapp/exec' }
   };
+  const mockFetch = (res) => { global.fetch = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve(JSON.stringify(res)) }); };
 
-  it('should show error on wrong password', () => {
+  it('should show error on wrong password', async () => {
+    mockFetch({ status: 'error', message: 'unauthorized' });
     const mockLogin = vi.fn();
     render(
       <ConfigContext.Provider value={mockConfig}>
@@ -47,15 +50,15 @@ describe('LoginView', () => {
       </ConfigContext.Provider>
     );
 
-    const input = screen.getByPlaceholderText('••••');
-    fireEvent.change(input, { target: { value: '0000' } });
-    const submitBtn = screen.getByRole('button', { name: /進入旅程/i });
-    fireEvent.submit(submitBtn.closest('form'));
+    fireEvent.change(screen.getByPlaceholderText('••••'), { target: { value: '0000' } });
+    fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }).closest('form'));
 
-    expect(screen.getByText(/密碼錯誤/i)).toBeInTheDocument();
+    expect(await screen.findByText(/密碼錯誤/i)).toBeInTheDocument();
+    expect(mockLogin).not.toHaveBeenCalled();
   });
 
-  it('should call onLogin on correct password', () => {
+  it('should call onLogin on correct password', async () => {
+    mockFetch({ status: 'success' });
     const mockLogin = vi.fn();
     render(
       <ConfigContext.Provider value={mockConfig}>
@@ -63,12 +66,10 @@ describe('LoginView', () => {
       </ConfigContext.Provider>
     );
 
-    const input = screen.getByPlaceholderText('••••');
-    fireEvent.change(input, { target: { value: '2026' } });
-    const submitBtn = screen.getByRole('button', { name: /進入旅程/i });
-    fireEvent.submit(submitBtn.closest('form'));
+    fireEvent.change(screen.getByPlaceholderText('••••'), { target: { value: '2026' } });
+    fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }).closest('form'));
 
-    expect(mockLogin).toHaveBeenCalled();
+    await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('2026'));
   });
 });
 
@@ -99,7 +100,7 @@ describe('Itinerary & Weather Switching', () => {
     theme: { small: '#ffffff', large: '#ffffff' },
     dates: { 1: '1/1', 12: '1/12' },
     title: { main: 'HONEYMOON' },
-    api: { planCsvUrl: '' },
+    api: { url: '' },
     weatherLocations: [
       { name: "BALI", lat: -8.34, lon: 115.09 },
       { name: "VIETNAM", lat: 14.05, lon: 108.27 }

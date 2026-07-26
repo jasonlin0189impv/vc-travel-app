@@ -44,14 +44,17 @@ describe('smartParseCSV', () => {
 // -----------------------------------------------------------------------------
 
 describe('LoginView', () => {
+  // PIN 現在由伺服器端 web app 驗證 → 用 mock fetch 模擬回應
   const mockConfig = {
     ui: { bgMain: '', textMain: '', cardLarge: '', btnSecondary: '' },
     theme: { small: '#ffffff', large: '#ffffff' },
     title: { main: 'SEOUL', year: '2025' },
-    authPin: '2025'
+    api: { url: 'https://mock-webapp/exec' }
   };
+  const mockFetch = (res) => { global.fetch = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve(JSON.stringify(res)) }); };
 
-  it('should show error on wrong password', () => {
+  it('should show error on wrong password', async () => {
+    mockFetch({ status: 'error', message: 'unauthorized' });
     const mockLogin = vi.fn();
     render(
       <ConfigContext.Provider value={mockConfig}>
@@ -59,17 +62,15 @@ describe('LoginView', () => {
       </ConfigContext.Provider>
     );
 
-    const input = screen.getByPlaceholderText('••••');
-    fireEvent.change(input, { target: { value: '0000' } }); // Wrong PIN
-    // 尋找按鈕 (新版按鈕文字仍為 "進入旅程")
-    const submitBtn = screen.getByRole('button', { name: /進入旅程/i });
-    fireEvent.submit(submitBtn.closest('form')); // 或是直接 click button
+    fireEvent.change(screen.getByPlaceholderText('••••'), { target: { value: '0000' } });
+    fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }).closest('form'));
 
-    expect(screen.getByText(/密碼錯誤/i)).toBeInTheDocument();
+    expect(await screen.findByText(/密碼錯誤/i)).toBeInTheDocument();
     expect(mockLogin).not.toHaveBeenCalled();
   });
 
-  it('should call onLogin on correct password', () => {
+  it('should call onLogin on correct password', async () => {
+    mockFetch({ status: 'success' });
     const mockLogin = vi.fn();
     render(
       <ConfigContext.Provider value={mockConfig}>
@@ -77,12 +78,10 @@ describe('LoginView', () => {
       </ConfigContext.Provider>
     );
 
-    const input = screen.getByPlaceholderText('••••');
-    fireEvent.change(input, { target: { value: '2025' } });
-    const submitBtn = screen.getByRole('button', { name: /進入旅程/i });
-    fireEvent.submit(submitBtn.closest('form'));
+    fireEvent.change(screen.getByPlaceholderText('••••'), { target: { value: '2025' } });
+    fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }).closest('form'));
 
-    expect(mockLogin).toHaveBeenCalled();
+    await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('2025'));
   });
 });
 
