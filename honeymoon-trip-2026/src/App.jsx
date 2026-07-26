@@ -1,9 +1,5 @@
 import TripApp from '../../shared/components/TripApp';
 
-const getEnv = (key, defaultValue) => {
-  try { return import.meta.env[key] || defaultValue; } catch (e) { return defaultValue; }
-};
-
 const config = {
   theme: {
     base: "#faf3eb", large: "#d9a78b", small: "#eedbc5", text: "#5c4a45", white: "#ffffff"
@@ -23,12 +19,10 @@ const config = {
     divider: "divide-[#eedbc5]",
     border: "border-[#eedbc5]"
   },
-  authPin: getEnv("VITE_HONEYMOON_AUTH_PIN", "2026"),
   api: {
-    planCsvUrl: getEnv("VITE_HONEYMOON_GOOGLE_SHEET_PLAN_CSV_URL", ""),
-    sheetCsvUrl: getEnv("VITE_HONEYMOON_GOOGLE_SHEET_CSV_URL", ""),
-    formActionUrl: getEnv("VITE_HONEYMOON_GOOGLE_FORM_ACTION_URL", ""),
-    formEntryIds: { ITEM: "entry.535523921", AMOUNT: "entry.304377441", PAYER: "entry.1459657419", CATEGORY: "entry.1495061883" }
+    // 單一 web app（行程 + 記帳）。網址非敏感：PIN 由伺服器端驗證，沒 PIN 打它也拿不到資料。
+    // 直接寫在 config → 不需要 GitHub secret（沿用既有行程 web app 的 /exec）。
+    url: "https://script.google.com/macros/s/AKfycbwZztRcoBJoDkMyaY3IM-D5fSI9E7Eyg9QNEM7BP9lEpAu9byTThGqjOjtAKb7QfRlN/exec",
   },
   members: ['信', '屏'],
   exchangeRates: { 'IDR': 0.002, 'VND': 0.0013, 'HKD': 4.1, 'USD': 32.04 },
