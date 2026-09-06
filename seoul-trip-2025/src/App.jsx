@@ -1,23 +1,24 @@
 import TripApp from '../../shared/components/TripApp';
 
 const config = {
+  // 手帳暖色 preset（Warm Editorial × Cult/Indie）：base=紙 large=陶土主墨 small=金副墨 text=墨
   theme: {
-    base: "#f7eaed", large: "#efc0c2", small: "#c7dbcf", text: "#5f768f", white: "#ffffff"
+    base: "#f0e8d8", large: "#b1502a", small: "#b98f43", text: "#2a2621", white: "#ffffff"
   },
   ui: {
-    bgMain: "bg-[#f7eaed]",
-    cardSmall: "bg-[#c7dbcf]/40 backdrop-blur-sm border border-[#c7dbcf] shadow-sm",
-    cardLarge: "bg-[#efc0c2] text-white shadow-lg shadow-[#efc0c2]/30",
-    inputGlass: "bg-white/80 border-2 border-[#c7dbcf] focus:border-[#efc0c2] text-[#5f768f] placeholder-[#5f768f]/50 outline-none transition-all",
-    textMain: "text-[#5f768f]",
-    textSub: "text-[#5f768f]/70",
-    textWhite: "text-white",
-    btnPrimary: "bg-[#efc0c2] text-white font-bold shadow-md shadow-[#efc0c2]/30 active:scale-95 transition-all hover:bg-[#e5b0b2]",
-    btnSecondary: "bg-[#c7dbcf] text-[#5f768f] font-bold hover:bg-[#b8ccc0] transition-all",
-    btnGhost: "bg-white/40 hover:bg-white/60 text-[#5f768f]",
-    btnIcon: "p-3 rounded-full bg-white/60 text-[#5f768f] shadow-sm hover:bg-white/90 active:scale-95 transition-all",
-    divider: "divide-[#c7dbcf]",
-    border: "border-[#c7dbcf]"
+    bgMain: "bg-[#f0e8d8]",
+    cardSmall: "bg-white/60 border border-[#d8ccb6] shadow-sm",
+    cardLarge: "bg-[#2a2621] text-[#f0e8d8] shadow-lg shadow-black/10",
+    inputGlass: "bg-white/70 border border-[#d8ccb6] focus:border-[#b1502a] text-[#2a2621] placeholder-[#2a2621]/40 outline-none transition-all",
+    textMain: "text-[#2a2621]",
+    textSub: "text-[#2a2621]/60",
+    textWhite: "text-[#f0e8d8]",
+    btnPrimary: "bg-[#b1502a] text-[#f0e8d8] font-bold shadow-md active:scale-95 transition-all hover:bg-[#9c4525]",
+    btnSecondary: "bg-[#b98f43] text-[#2a2621] font-bold hover:bg-[#a87f38] transition-all",
+    btnGhost: "bg-white/40 hover:bg-white/60 text-[#2a2621]",
+    btnIcon: "p-3 rounded-full bg-white/60 text-[#2a2621] shadow-sm hover:bg-white/90 active:scale-95 transition-all",
+    divider: "divide-[#d8ccb6]",
+    border: "border-[#d8ccb6]"
   },
   api: {
     // 單一 web app（行程 + 記帳）。網址非敏感：PIN 由伺服器端驗證，沒 PIN 打它也拿不到資料。
