@@ -1,25 +1,8 @@
 import TripApp from '../../shared/components/TripApp';
+import { PALETTES } from '../../shared/components/palettes';
 
 const config = {
-  // 手帳暖色 preset（Warm Editorial × Cult/Indie）：base=紙 large=陶土主墨 small=金副墨 text=墨
-  theme: {
-    base: "#f0e8d8", large: "#b1502a", small: "#b98f43", text: "#2a2621", white: "#ffffff"
-  },
-  ui: {
-    bgMain: "bg-[#f0e8d8]",
-    cardSmall: "bg-white/60 border border-[#d8ccb6] shadow-sm",
-    cardLarge: "bg-[#2a2621] text-[#f0e8d8] shadow-lg shadow-black/10",
-    inputGlass: "bg-white/70 border border-[#d8ccb6] focus:border-[#b1502a] text-[#2a2621] placeholder-[#2a2621]/40 outline-none transition-all",
-    textMain: "text-[#2a2621]",
-    textSub: "text-[#2a2621]/60",
-    textWhite: "text-[#f0e8d8]",
-    btnPrimary: "bg-[#b1502a] text-[#f0e8d8] font-bold shadow-md active:scale-95 transition-all hover:bg-[#9c4525]",
-    btnSecondary: "bg-[#b98f43] text-[#2a2621] font-bold hover:bg-[#a87f38] transition-all",
-    btnGhost: "bg-white/40 hover:bg-white/60 text-[#2a2621]",
-    btnIcon: "p-3 rounded-full bg-white/60 text-[#2a2621] shadow-sm hover:bg-white/90 active:scale-95 transition-all",
-    divider: "divide-[#d8ccb6]",
-    border: "border-[#d8ccb6]"
-  },
+  ...PALETTES.candy, // 配色從色庫挑選；換成 journal / blush / matcha / ocean… 即換色（見 shared/components/palettes.js）
   api: {
     // 單一 web app（行程 + 記帳）。網址非敏感：PIN 由伺服器端驗證，沒 PIN 打它也拿不到資料。
     // 直接寫在 config → 不需要 GitHub secret（沿用既有行程 web app 的 /exec）。

@@ -235,7 +235,8 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
           const currentLocWeather = weatherData[idx];
           return (
             <div key={idx} className="flex-shrink-0 w-full snap-center px-1">
-              <div className={`${ui.cardLarge} rounded-lg p-6 flex flex-col relative overflow-hidden transition-all duration-300`}>
+              <div className={`${ui.cardLarge} rounded-[1.75rem] p-6 flex flex-col relative overflow-hidden transition-all duration-300`}>
+                <div className="absolute right-0 top-0 w-40 h-40 bg-white/15 rounded-full -mr-12 -mt-12 z-0"></div>
                 <div className="flex items-center justify-between z-10 w-full mb-2">
                   <div className={`flex items-center gap-1.5 ${ui.textWhite} opacity-80 text-xs uppercase tracking-widest`}>
                     <MapPin size={12} />
@@ -378,41 +379,38 @@ export const ItineraryView = () => {
 
       <WeatherWidget onRefresh={() => fetchItinerary(true)} isRefreshing={loading} />
 
-      <div className={`sticky top-0 ${ui.bgMain} z-10 -mx-4 px-4 mb-6`}>
-        <div className={`flex border-y ${ui.border} overflow-x-auto scrollbar-hide`}>
-          {Object.keys(dates).map((dayStr) => {
-            const day = parseInt(dayStr);
-            const on = activeDay === day;
-            return (
-              <button key={day} onClick={() => setActiveDay(day)} aria-current={on ? 'true' : undefined}
-                className={`flex-1 min-w-[3.8rem] py-2.5 flex flex-col items-center border-r ${ui.border} last:border-r-0 transition-colors ${on ? '' : 'hover:bg-black/5'}`}
-                style={{ backgroundColor: on ? theme.large : 'transparent', color: on ? theme.base : theme.text }}>
-                <span className="text-[9px] uppercase tracking-widest opacity-70 mb-0.5">Day {day}</span>
-                <span className="text-base font-serif">{dates[day]}</span>
-              </button>
-            );
-          })}
-        </div>
+      <div className={`sticky top-0 ${ui.bgMain} z-10 -mx-4 px-4 py-2 mb-4 flex gap-2.5 overflow-x-auto scrollbar-hide`}>
+        {Object.keys(dates).map((dayStr) => {
+          const day = parseInt(dayStr);
+          const on = activeDay === day;
+          return (
+            <button key={day} onClick={() => setActiveDay(day)} aria-current={on ? 'true' : undefined}
+              className={`flex-shrink-0 w-[4.2rem] py-3 rounded-2xl flex flex-col items-center transition-all ${on ? `${ui.btnPrimary} scale-105` : `bg-white/60 shadow-sm ${ui.textMain}`}`}>
+              <span className="text-[9px] uppercase tracking-widest opacity-70 mb-0.5">Day {day}</span>
+              <span className="text-base font-serif">{dates[day]}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className={`border-t ${ui.border}`}>
+      <div className="space-y-3">
         {currentDayItems.length === 0 && <div className={`text-center py-16 ${ui.textSub} font-serif italic`}>本日尚無行程</div>}
         {currentDayItems.map((item, index) => (
-          <div key={index} onClick={() => { setSelectedItem(item); setEditForm(item); setIsEditing(false); }} className={`group grid grid-cols-[3.2rem_1fr] gap-4 py-4 border-b ${ui.border} relative cursor-pointer active:opacity-70 transition-opacity`}>
-            <div className="pt-1.5">
+          <div key={index} onClick={() => { setSelectedItem(item); setEditForm(item); setIsEditing(false); }} className={`group ${ui.cardSmall} rounded-[1.5rem] p-5 grid grid-cols-[3rem_1fr] gap-3 relative cursor-pointer active:scale-[0.99] transition-all`}>
+            <div className="pt-1">
               <span className="text-xs font-mono tabular-nums tracking-tight" style={{ color: theme.large }}>{item.time}</span>
             </div>
-            <div className="pr-8">
+            <div className="pr-7">
               <div className="flex items-center gap-2 mb-1">
                 <span className={ui.textSub}>{ICON_MAP[item.icon] || ICON_MAP['default']}</span>
                 <h4 className={`font-serif text-lg leading-snug ${ui.textMain}`}>{item.title}</h4>
               </div>
               <p className={`${ui.textSub} text-sm line-clamp-2 leading-relaxed`}>{item.desc}</p>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); setDeletingItem(item); }} className={`absolute top-3.5 right-0 p-1.5 ${ui.textSub} hover:opacity-100 opacity-45 transition-opacity`}><Trash2 size={15} /></button>
+            <button onClick={(e) => { e.stopPropagation(); setDeletingItem(item); }} className={`absolute top-4 right-4 p-1.5 rounded-full ${ui.textSub} hover:opacity-100 opacity-45 transition-opacity`}><Trash2 size={15} /></button>
           </div>
         ))}
-        <button onClick={() => { setEditForm({ id: `new-${Date.now()}`, time: '12:00', title: '', desc: '', icon: 'default', day: activeDay }); setIsEditing(true); setSelectedItem({ id: 'new' }); }} className={`w-full py-4 mt-1 ${ui.textSub} hover:opacity-100 opacity-70 text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity`}>
+        <button onClick={() => { setEditForm({ id: `new-${Date.now()}`, time: '12:00', title: '', desc: '', icon: 'default', day: activeDay }); setIsEditing(true); setSelectedItem({ id: 'new' }); }} className={`w-full py-4 rounded-[1.5rem] border-2 border-dashed ${ui.border} ${ui.textSub} hover:opacity-100 opacity-70 text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity`}>
           <Plus size={14} /> 新增行程
         </button>
       </div>
@@ -420,11 +418,11 @@ export const ItineraryView = () => {
       {deletingItem && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
           <div className={`absolute inset-0 bg-black/30 animate-fade-in`} onClick={() => setDeletingItem(null)}></div>
-          <div className={`relative ${ui.bgMain} w-full max-w-xs border ${ui.border} shadow-2xl p-8 animate-slide-up flex flex-col items-center text-center`}>
+          <div className={`relative ${ui.bgMain} w-full max-w-xs border ${ui.border} shadow-2xl rounded-3xl p-8 animate-slide-up flex flex-col items-center text-center`}>
             <h3 className={`text-2xl font-serif ${ui.textMain} mb-6`}>確認刪除？</h3>
             <div className="flex gap-3 w-full">
-              <button onClick={() => setDeletingItem(null)} className={`flex-1 border ${ui.border} ${ui.textMain} py-3 rounded-none text-sm uppercase tracking-widest`}>取消</button>
-              <button onClick={handleConfirmDelete} disabled={isSaving} className={`flex-1 ${ui.btnPrimary} py-3 rounded-none text-sm uppercase tracking-widest`}>{isSaving ? '...' : "刪除"}</button>
+              <button onClick={() => setDeletingItem(null)} className={`flex-1 border ${ui.border} ${ui.textMain} py-3 rounded-xl text-sm uppercase tracking-widest`}>取消</button>
+              <button onClick={handleConfirmDelete} disabled={isSaving} className={`flex-1 ${ui.btnPrimary} py-3 rounded-xl text-sm uppercase tracking-widest`}>{isSaving ? '...' : "刪除"}</button>
             </div>
           </div>
         </div>
@@ -433,7 +431,7 @@ export const ItineraryView = () => {
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center">
           <div className={`absolute inset-0 bg-black/30 animate-fade-in`} onClick={() => setSelectedItem(null)}></div>
-          <div className={`${ui.bgMain} w-full max-w-md rounded-t-lg border-t ${ui.border} shadow-2xl relative z-10 overflow-hidden h-[85vh] flex flex-col animate-slide-up`}>
+          <div className={`${ui.bgMain} w-full max-w-md rounded-t-[2rem] border-t ${ui.border} shadow-2xl relative z-10 overflow-hidden h-[85vh] flex flex-col animate-slide-up`}>
             <div className={`w-full flex justify-between items-center px-6 py-4 border-b ${ui.border}`}>
               {!isEditing ? <button onClick={() => { setIsEditing(true); setEditForm(selectedItem); }} className={ui.textSub}><Edit2 size={20} /></button> : <div className="w-6"></div>}
               <button onClick={() => setSelectedItem(null)} className={ui.textSub}><X size={20} /></button>
@@ -442,10 +440,10 @@ export const ItineraryView = () => {
               {isEditing ? (
                 <div className="space-y-6">
                   <h3 className={`text-2xl font-serif ${ui.textMain}`}>{selectedItem.id && String(selectedItem.id).startsWith('new-') ? '新增行程' : '編輯行程'}</h3>
-                  <div><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} mb-2 block`}>時間</label><input type="time" value={editForm.time} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={`w-full ${ui.inputGlass} p-3 rounded-none`} /></div>
-                  <div><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} mb-2 block`}>標題</label><input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className={`w-full ${ui.inputGlass} p-3 rounded-none text-lg font-serif`} /></div>
-                  <div><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} mb-2 block`}>圖示</label><div className="flex flex-wrap gap-2">{Object.keys(ICON_MAP).map(key => { const on = editForm.icon === key; return (<button key={key} onClick={() => setEditForm({ ...editForm, icon: key })} className={`p-3 rounded-none border transition-all ${on ? '' : ui.border}`} style={{ backgroundColor: on ? theme.large : 'transparent', color: on ? theme.base : theme.text, borderColor: on ? theme.large : undefined }}>{ICON_MAP[key]}</button>); })}</div></div>
-                  <div><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} mb-2 block`}>詳細內容</label><textarea value={editForm.desc} onChange={(e) => setEditForm({ ...editForm, desc: e.target.value })} className={`w-full ${ui.inputGlass} p-3 rounded-none h-40 leading-relaxed`} /></div>
+                  <div><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} mb-2 block`}>時間</label><input type="time" value={editForm.time} onChange={(e) => setEditForm({ ...editForm, time: e.target.value })} className={`w-full ${ui.inputGlass} p-3 rounded-xl`} /></div>
+                  <div><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} mb-2 block`}>標題</label><input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} className={`w-full ${ui.inputGlass} p-3 rounded-xl text-lg font-serif`} /></div>
+                  <div><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} mb-2 block`}>圖示</label><div className="flex flex-wrap gap-2">{Object.keys(ICON_MAP).map(key => { const on = editForm.icon === key; return (<button key={key} onClick={() => setEditForm({ ...editForm, icon: key })} className={`p-3 rounded-xl border transition-all ${on ? '' : ui.border}`} style={{ backgroundColor: on ? theme.large : 'transparent', color: on ? theme.base : theme.text, borderColor: on ? theme.large : undefined }}>{ICON_MAP[key]}</button>); })}</div></div>
+                  <div><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} mb-2 block`}>詳細內容</label><textarea value={editForm.desc} onChange={(e) => setEditForm({ ...editForm, desc: e.target.value })} className={`w-full ${ui.inputGlass} p-3 rounded-xl h-40 leading-relaxed`} /></div>
                 </div>
               ) : (
                 <>
@@ -458,8 +456,8 @@ export const ItineraryView = () => {
             {isEditing && (
               <div className={`p-6 border-t ${ui.border} pb-safe`}>
                 <div className="flex gap-3">
-                  <button onClick={() => setIsEditing(false)} disabled={isSaving} className={`flex-1 border ${ui.border} ${ui.textMain} py-3 rounded-none text-sm uppercase tracking-widest`}>取消</button>
-                  <button onClick={handleSaveItem} disabled={isSaving} className={`flex-1 ${ui.btnPrimary} py-3 rounded-none text-sm uppercase tracking-widest flex justify-center gap-2`}>儲存</button>
+                  <button onClick={() => setIsEditing(false)} disabled={isSaving} className={`flex-1 border ${ui.border} ${ui.textMain} py-3 rounded-xl text-sm uppercase tracking-widest`}>取消</button>
+                  <button onClick={handleSaveItem} disabled={isSaving} className={`flex-1 ${ui.btnPrimary} py-3 rounded-xl text-sm uppercase tracking-widest flex justify-center gap-2`}>儲存</button>
                 </div>
               </div>
             )}
@@ -523,33 +521,37 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
 
   return (
     <div className="pb-32 pt-2">
-      <div className={`text-center border-y-2 py-6 mb-6 relative ${ui.border}`} style={{ borderColor: theme.text }}>
-        {onRefresh && (
-          <button onClick={(e) => { e.stopPropagation(); onRefresh(); }} className={`absolute top-4 right-0 p-2 ${ui.textSub} hover:opacity-100 opacity-60 transition-opacity`}>
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          </button>
-        )}
-        <p className={`${ui.textSub} text-[11px] uppercase tracking-[0.22em] mb-2`}>Total Expenses</p>
-        <div className="flex items-baseline justify-center gap-2">
-          <span className={`text-sm font-serif italic ${ui.textSub}`}>{baseCurrency}</span>
-          <h2 className={`text-5xl font-serif tracking-tight ${ui.textMain}`}>{totalBase.toLocaleString()}</h2>
+      <div className={`${ui.cardLarge} rounded-[1.75rem] p-7 mb-6 relative overflow-hidden`}>
+        <div className="absolute right-0 top-0 w-36 h-36 bg-white/15 rounded-full -mr-10 -mt-10 z-0"></div>
+        <div className="relative z-10 flex justify-between items-start">
+          <div>
+            <p className={`${ui.textWhite} opacity-80 text-[11px] uppercase tracking-[0.22em] mb-2`}>Total Expenses</p>
+            <div className="flex items-baseline gap-2">
+              <span className={`text-sm font-serif italic ${ui.textWhite} opacity-80`}>{baseCurrency}</span>
+              <h2 className={`text-5xl font-serif tracking-tight ${ui.textWhite}`}>{totalBase.toLocaleString()}</h2>
+            </div>
+          </div>
+          {onRefresh && (
+            <button onClick={(e) => { e.stopPropagation(); onRefresh(); }} className={`p-2 rounded-full bg-white/20 ${ui.textWhite} hover:bg-white/30 active:scale-95 transition-all`}>
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            </button>
+          )}
         </div>
       </div>
-      <div className={`flex border ${ui.border} mb-6`}>
+      <div className={`flex ${ui.cardSmall} rounded-2xl p-1.5 mb-6`}>
         {['list', 'split'].map(mode => {
           const on = viewMode === mode;
           return (<button key={mode} onClick={() => setViewMode(mode)}
-            className={`flex-1 py-3 text-xs uppercase tracking-widest flex items-center justify-center gap-2 border-r ${ui.border} last:border-r-0 transition-colors ${on ? '' : `${ui.textMain} hover:bg-black/5`}`}
-            style={{ backgroundColor: on ? theme.text : 'transparent', color: on ? theme.base : '' }}>
+            className={`flex-1 py-2.5 rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${on ? `${ui.btnPrimary}` : `${ui.textMain} hover:opacity-70`}`}>
             {mode === 'list' ? <><List size={15} /> 消費明細</> : <><PieChart size={15} /> 拆帳計算</>}</button>);
         })}
       </div>
       {viewMode === 'list' ? (
         <>
-          <button onClick={() => setShowFormModal(true)} className={`w-full ${ui.btnPrimary} py-4 flex items-center justify-center gap-2 mb-6 text-sm uppercase tracking-widest`}><Plus size={18} /> 記一筆</button>
-          <div className={`border-t ${ui.border}`}>
+          <button onClick={() => setShowFormModal(true)} className={`w-full ${ui.btnPrimary} py-4 rounded-2xl flex items-center justify-center gap-2 mb-4 text-sm uppercase tracking-widest`}><Plus size={18} /> 記一筆</button>
+          <div className="space-y-3">
             {expenses.map((item, idx) => (
-              <div key={idx} className={`py-4 border-b ${ui.border} flex items-center justify-between gap-3 ${item.isPending ? 'opacity-70' : ''}`}>
+              <div key={idx} className={`${ui.cardSmall} rounded-[1.25rem] p-4 flex items-center justify-between gap-3 ${item.isPending ? 'opacity-70' : ''}`}>
                 <div className="min-w-0">
                   <p className={`font-serif ${ui.textMain} text-lg leading-snug truncate`}>{item.desc.split('#')[0]}</p>
                   <span className={`text-xs uppercase tracking-wider ${ui.textSub}`}>{item.author || 'N/A'}</span>
@@ -563,9 +565,9 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
           </div>
         </>
       ) : (
-        <div className={`border-t ${ui.border}`}>
+        <div className={`${ui.cardSmall} rounded-[1.5rem] p-5 space-y-1`}>
           {splitData.debts.map((p, i) => (
-            <div key={i} className={`flex items-center justify-between py-4 border-b ${ui.border}`}>
+            <div key={i} className={`flex items-center justify-between py-2.5 ${i < splitData.debts.length - 1 ? `border-b ${ui.border}` : ''}`}>
               <div>
                 <p className={`text-base font-serif ${ui.textMain}`}>{p.name}</p>
                 <p className={`text-xs ${ui.textSub}`}>已墊付 {p.paid.toLocaleString()}</p>
@@ -578,7 +580,7 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
       {showFormModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center">
           <div className={`absolute inset-0 bg-black/30`} onClick={() => setShowFormModal(false)}></div>
-          <div className={`${ui.bgMain} w-full max-w-sm border ${ui.border} shadow-2xl relative z-10 p-8`}>
+          <div className={`${ui.bgMain} w-full max-w-sm border ${ui.border} shadow-2xl rounded-3xl relative z-10 p-8`}>
             <div className={`flex justify-between items-center mb-6 pb-4 border-b ${ui.border}`}><h3 className={`font-serif text-2xl ${ui.textMain}`}>新增支出</h3><button onClick={() => setShowFormModal(false)} className={ui.textSub}><X size={20} /></button></div>
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className={`border-b ${ui.border} pb-3`}><label className={`text-[10px] uppercase tracking-widest ${ui.textSub} block mb-1`}>金額</label><div className="flex items-baseline gap-2"><span className={`text-lg font-serif italic ${ui.textSub}`}>{currencyMode}</span><input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} className={`w-full bg-transparent text-4xl font-serif ${ui.textMain} outline-none`} placeholder="0" required /></div></div>
@@ -587,7 +589,7 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
                   <button key={cur} type="button" onClick={() => setCurrencyMode(cur)} className={`flex-1 py-2 px-3 text-sm border-r ${ui.border} last:border-r-0 transition-colors`} style={{ backgroundColor: on ? theme.text : 'transparent', color: on ? theme.base : theme.text }}>{cur}</button>
                 ); })}
               </div>
-              <input type="text" value={formData.item} onChange={(e) => setFormData({ ...formData, item: e.target.value })} className={`w-full p-3 ${ui.inputGlass} rounded-none outline-none font-serif text-lg ${ui.textMain}`} placeholder="例如：烤肉" required />
+              <input type="text" value={formData.item} onChange={(e) => setFormData({ ...formData, item: e.target.value })} className={`w-full p-3 ${ui.inputGlass} rounded-xl outline-none font-serif text-lg ${ui.textMain}`} placeholder="例如：烤肉" required />
 
               <div className="space-y-3">
                 <label className={`text-[10px] uppercase tracking-widest ${ui.textSub}`}>分攤對象</label>
@@ -597,7 +599,7 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
                       key={m}
                       type="button"
                       onClick={() => toggleSplitMember(m)}
-                      className={`px-4 py-2 rounded-none text-sm border transition-all ${on ? '' : ui.border}`}
+                      className={`px-4 py-2 rounded-xl text-sm border transition-all ${on ? '' : ui.border}`}
                       style={{ backgroundColor: on ? theme.large : 'transparent', color: on ? theme.base : theme.text, borderColor: on ? theme.large : undefined }}
                     >
                       {m}
@@ -606,10 +608,10 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <select value={formData.payer} onChange={(e) => setFormData({ ...formData, payer: e.target.value })} className={`w-full p-3 ${ui.inputGlass} rounded-none`}>{members.map(m => <option key={m} value={m}>{m}</option>)}</select>
-                <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className={`w-full p-3 ${ui.inputGlass} rounded-none`}><option>食物</option><option>交通</option><option>住宿</option><option>購物</option></select>
+                <select value={formData.payer} onChange={(e) => setFormData({ ...formData, payer: e.target.value })} className={`w-full p-3 ${ui.inputGlass} rounded-xl`}>{members.map(m => <option key={m} value={m}>{m}</option>)}</select>
+                <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className={`w-full p-3 ${ui.inputGlass} rounded-xl`}><option>食物</option><option>交通</option><option>住宿</option><option>購物</option></select>
               </div>
-              <button type="submit" disabled={submitting} className={`w-full ${ui.btnPrimary} py-4 rounded-none text-sm uppercase tracking-widest mt-2`}>確認記帳</button>
+              <button type="submit" disabled={submitting} className={`w-full ${ui.btnPrimary} py-4 rounded-xl text-sm uppercase tracking-widest mt-2`}>確認記帳</button>
             </form>
           </div>
         </div>
@@ -633,8 +635,8 @@ export const RemindersView = () => {
     <div className="pb-32 pt-2 space-y-10">
       <div>
         <h3 className={`font-serif ${ui.textMain} text-2xl mb-4 flex items-center gap-2`}><CheckSquare size={20} style={{ color: theme.large }} /> 行前檢查</h3>
-        <form onSubmit={addItem} className="flex gap-2 mb-4"><input type="text" value={newItemText} onChange={(e) => setNewItemText(e.target.value)} placeholder="Add item..." className={`flex-1 ${ui.inputGlass} p-3 rounded-none outline-none text-sm`} /><button type="submit" className={`${ui.btnPrimary} px-4 rounded-none`}><Plus size={18} /></button></form>
-        <div className={`border-t ${ui.border}`}>{checklist.map((item) => (<div key={item.id} className={`flex items-center justify-between py-3 border-b ${ui.border} group`}><label className="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" className="w-5 h-5 rounded-none" style={{ accentColor: theme.large }} checked={item.checked} onChange={() => toggleItem(item.id)} /><span className={`text-base ${item.checked ? `line-through ${ui.textSub} opacity-50` : ui.textMain}`}>{item.text}</span></label><button onClick={() => deleteItem(item.id)} className={`${ui.textSub} hover:opacity-100 opacity-45 p-1`}><Trash2 size={16} /></button></div>))}</div>
+        <form onSubmit={addItem} className="flex gap-2 mb-4"><input type="text" value={newItemText} onChange={(e) => setNewItemText(e.target.value)} placeholder="Add item..." className={`flex-1 ${ui.inputGlass} p-3 rounded-xl outline-none text-sm`} /><button type="submit" className={`${ui.btnPrimary} px-4 rounded-xl`}><Plus size={18} /></button></form>
+        <div className={`border-t ${ui.border}`}>{checklist.map((item) => (<div key={item.id} className={`flex items-center justify-between py-3 border-b ${ui.border} group`}><label className="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" className="w-5 h-5 rounded-md" style={{ accentColor: theme.large }} checked={item.checked} onChange={() => toggleItem(item.id)} /><span className={`text-base ${item.checked ? `line-through ${ui.textSub} opacity-50` : ui.textMain}`}>{item.text}</span></label><button onClick={() => deleteItem(item.id)} className={`${ui.textSub} hover:opacity-100 opacity-45 p-1`}><Trash2 size={16} /></button></div>))}</div>
       </div>
       {tips && tips.length > 0 && (
         <div>
@@ -669,11 +671,11 @@ export const OthersView = () => {
     <div className="pb-32 pt-2 space-y-6">
       <div>
         <h3 className={`font-serif ${ui.textMain} text-2xl mb-4 flex items-center gap-2`}><Calculator size={20} style={{ color: theme.large }} /> 匯率計算機</h3>
-        <div className={`${ui.cardLarge} p-6 rounded-lg`}>
+        <div className={`${ui.cardLarge} p-6 rounded-[1.75rem]`}>
           <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
             {Object.keys(exchangeRates).map(cur => {
               const on = activeCurrency === cur;
-              return (<button key={cur} onClick={() => setActiveCurrency(cur)} className="px-4 py-1.5 rounded-none text-sm whitespace-nowrap border transition-colors" style={{ borderColor: on ? theme.base : `${theme.base}44`, backgroundColor: on ? theme.base : 'transparent', color: on ? theme.text : theme.base }}>{cur}</button>);
+              return (<button key={cur} onClick={() => setActiveCurrency(cur)} className="px-4 py-1.5 rounded-xl text-sm whitespace-nowrap border transition-colors" style={{ borderColor: on ? theme.base : `${theme.base}44`, backgroundColor: on ? theme.base : 'transparent', color: on ? theme.text : theme.base }}>{cur}</button>);
             })}
           </div>
           <div className="space-y-3">

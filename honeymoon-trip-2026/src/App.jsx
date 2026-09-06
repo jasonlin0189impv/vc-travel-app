@@ -1,24 +1,8 @@
 import TripApp from '../../shared/components/TripApp';
+import { PALETTES } from '../../shared/components/palettes';
 
 const config = {
-  theme: {
-    base: "#faf3eb", large: "#d9a78b", small: "#eedbc5", text: "#5c4a45", white: "#ffffff"
-  },
-  ui: {
-    bgMain: "bg-[#faf3eb]",
-    cardSmall: "bg-[#eedbc5]/40 backdrop-blur-sm border border-[#eedbc5] shadow-sm",
-    cardLarge: "bg-[#d9a78b] text-white shadow-lg shadow-[#d9a78b]/30",
-    inputGlass: "bg-white/80 border-2 border-[#eedbc5] focus:border-[#d9a78b] text-[#5c4a45] placeholder-[#5c4a45]/50 outline-none transition-all",
-    textMain: "text-[#5c4a45]",
-    textSub: "text-[#5c4a45]/70",
-    textWhite: "text-white",
-    btnPrimary: "bg-[#d9a78b] text-white font-bold shadow-md shadow-[#d9a78b]/30 active:scale-95 transition-all hover:bg-[#e5b0b2]",
-    btnSecondary: "bg-[#eedbc5] text-[#5c4a45] font-bold hover:bg-[#b8ccc0] transition-all",
-    btnGhost: "bg-white/40 hover:bg-white/60 text-[#5c4a45]",
-    btnIcon: "p-3 rounded-full bg-white/60 text-[#5c4a45] shadow-sm hover:bg-white/90 active:scale-95 transition-all",
-    divider: "divide-[#eedbc5]",
-    border: "border-[#eedbc5]"
-  },
+  ...PALETTES.blush, // 配色從色庫挑選；換成 candy / journal / matcha / ocean 即換色（見 shared/components/palettes.js）
   api: {
     // 單一 web app（行程 + 記帳）。網址非敏感：PIN 由伺服器端驗證，沒 PIN 打它也拿不到資料。
     // 直接寫在 config → 不需要 GitHub secret（沿用既有行程 web app 的 /exec）。
