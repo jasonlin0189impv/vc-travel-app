@@ -65,5 +65,6 @@ web app 先驗 `pin`（存在 Script Properties 的 `AUTH_PIN`）→ 錯就不�
 - [ ] `test_()` 通過
 - [ ] `cd <trip>-YYYY && npm install && npm run test && npm run build` 全綠
 - [ ] 部署後開 app：輸入 PIN 能進、行程與記帳都讀寫正常、記帳可刪
+- [ ] 部署後在瀏覽器 F12 搜 `AUTH_PIN` → **應找不到**（確認 PIN 沒被打包進前端 bundle）
 
 > 一個 Apps Script 專案 = 一個旅程。PIN 存伺服器端，前端 bundle 不含任何祕密。
