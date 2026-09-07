@@ -228,15 +228,15 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-1 px-1"
+        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
         style={{ scrollBehavior: 'smooth' }}
       >
         {weatherLocations.map((loc, idx) => {
           const currentLocWeather = weatherData[idx];
           return (
-            <div key={idx} className="flex-shrink-0 w-full snap-center px-1">
+            <div key={idx} className="flex-shrink-0 w-full snap-center">
               <div className={`${ui.cardLarge} rounded-[1.75rem] p-6 flex flex-col relative overflow-hidden transition-all duration-300`}>
-                <div className="absolute right-0 top-0 w-40 h-40 bg-white/15 rounded-full -mr-12 -mt-12 z-0"></div>
+                <div className="absolute right-0 top-0 w-48 h-48 bg-white/20 rounded-full -mr-14 -mt-14 z-0"></div>
                 <div className="flex items-center justify-between z-10 w-full mb-2">
                   <div className={`flex items-center gap-1.5 ${ui.textWhite} opacity-80 text-xs uppercase tracking-widest`}>
                     <MapPin size={12} />
@@ -257,11 +257,11 @@ const WeatherWidget = ({ onRefresh, isRefreshing }) => {
                   </div>
                   <div className={`flex flex-col items-end gap-3`}>
                     {onRefresh && (
-                      <button onClick={(e) => { e.stopPropagation(); onRefresh(); }} className={`p-2 rounded-md bg-white/15 ${ui.textWhite} hover:bg-white/25 active:scale-95 transition-all`}>
+                      <button onClick={(e) => { e.stopPropagation(); onRefresh(); }} className={`p-2 rounded-full bg-white/20 ${ui.textWhite} hover:bg-white/30 active:scale-95 transition-all`}>
                         <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
                       </button>
                     )}
-                    <CloudSun className={`${ui.textWhite} opacity-90`} size={44} />
+                    <div className="p-3.5 bg-white/15 rounded-[1.25rem] backdrop-blur-sm"><CloudSun className={ui.textWhite} size={40} /></div>
                   </div>
                 </div>
               </div>
@@ -379,7 +379,7 @@ export const ItineraryView = () => {
 
       <WeatherWidget onRefresh={() => fetchItinerary(true)} isRefreshing={loading} />
 
-      <div className={`sticky top-0 ${ui.bgMain} z-10 -mx-4 px-4 py-2 mb-4 flex gap-2.5 overflow-x-auto scrollbar-hide`}>
+      <div className={`sticky top-0 ${ui.bgMain} z-10 py-2 mb-4 flex gap-2.5 overflow-x-auto scrollbar-hide`}>
         {Object.keys(dates).map((dayStr) => {
           const day = parseInt(dayStr);
           const on = activeDay === day;
@@ -522,7 +522,6 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
   return (
     <div className="pb-32 pt-2">
       <div className={`${ui.cardLarge} rounded-[1.75rem] p-7 mb-6 relative overflow-hidden`}>
-        <div className="absolute right-0 top-0 w-36 h-36 bg-white/15 rounded-full -mr-10 -mt-10 z-0"></div>
         <div className="relative z-10 flex justify-between items-start">
           <div>
             <p className={`${ui.textWhite} opacity-80 text-[11px] uppercase tracking-[0.22em] mb-2`}>Total Expenses</p>

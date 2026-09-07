@@ -15,7 +15,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#f7eaed]",
       cardSmall: "bg-[#c7dbcf]/40 backdrop-blur-sm border border-[#c7dbcf]/60 shadow-sm",
-      cardLarge: "bg-[#efc0c2] text-white shadow-lg shadow-[#efc0c2]/30",
+      cardLarge: "bg-[#efc0c2] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#c7dbcf] focus:border-[#efc0c2] text-[#5f768f] placeholder-[#5f768f]/40 outline-none transition-all",
       textMain: "text-[#5f768f]",
       textSub: "text-[#5f768f]/60",
@@ -35,7 +35,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#f0e8d8]",
       cardSmall: "bg-[#c9b89a]/30 backdrop-blur-sm border border-[#c9b89a]/60 shadow-sm",
-      cardLarge: "bg-[#b1502a] text-white shadow-lg shadow-[#b1502a]/30",
+      cardLarge: "bg-[#b1502a] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#c9b89a] focus:border-[#b1502a] text-[#2a2621] placeholder-[#2a2621]/40 outline-none transition-all",
       textMain: "text-[#2a2621]",
       textSub: "text-[#2a2621]/60",
@@ -55,7 +55,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#faf3eb]",
       cardSmall: "bg-[#eedbc5]/50 backdrop-blur-sm border border-[#eedbc5] shadow-sm",
-      cardLarge: "bg-[#d9a78b] text-white shadow-lg shadow-[#d9a78b]/30",
+      cardLarge: "bg-[#d9a78b] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#eedbc5] focus:border-[#d9a78b] text-[#5c4a45] placeholder-[#5c4a45]/40 outline-none transition-all",
       textMain: "text-[#5c4a45]",
       textSub: "text-[#5c4a45]/60",
@@ -75,7 +75,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#eef0e2]",
       cardSmall: "bg-[#cdd3b4]/40 backdrop-blur-sm border border-[#cdd3b4] shadow-sm",
-      cardLarge: "bg-[#5f7a4a] text-white shadow-lg shadow-[#5f7a4a]/30",
+      cardLarge: "bg-[#5f7a4a] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#cdd3b4] focus:border-[#5f7a4a] text-[#33402c] placeholder-[#33402c]/40 outline-none transition-all",
       textMain: "text-[#33402c]",
       textSub: "text-[#33402c]/60",
@@ -95,7 +95,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#eaf1f2]",
       cardSmall: "bg-[#bcd2d3]/40 backdrop-blur-sm border border-[#bcd2d3] shadow-sm",
-      cardLarge: "bg-[#2f6b7a] text-white shadow-lg shadow-[#2f6b7a]/30",
+      cardLarge: "bg-[#2f6b7a] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#bcd2d3] focus:border-[#2f6b7a] text-[#22333b] placeholder-[#22333b]/40 outline-none transition-all",
       textMain: "text-[#22333b]",
       textSub: "text-[#22333b]/60",
@@ -115,7 +115,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#f1ecf2]",
       cardSmall: "bg-[#d9b8c4]/35 backdrop-blur-sm border border-[#d9b8c4] shadow-sm",
-      cardLarge: "bg-[#7b4b8a] text-white shadow-lg shadow-[#7b4b8a]/30",
+      cardLarge: "bg-[#7b4b8a] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#d9b8c4] focus:border-[#7b4b8a] text-[#34283a] placeholder-[#34283a]/40 outline-none transition-all",
       textMain: "text-[#34283a]",
       textSub: "text-[#34283a]/60",
@@ -135,7 +135,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#fdeee0]",
       cardSmall: "bg-[#f0cf9e]/40 backdrop-blur-sm border border-[#f0cf9e] shadow-sm",
-      cardLarge: "bg-[#d5622b] text-white shadow-lg shadow-[#d5622b]/30",
+      cardLarge: "bg-[#d5622b] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#f0cf9e] focus:border-[#d5622b] text-[#3a2418] placeholder-[#3a2418]/40 outline-none transition-all",
       textMain: "text-[#3a2418]",
       textSub: "text-[#3a2418]/60",
@@ -155,7 +155,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#171a21]",
       cardSmall: "bg-[#4c5a6b]/25 backdrop-blur-sm border border-[#4c5a6b]/60 shadow-sm",
-      cardLarge: "bg-[#e0a53f] text-[#171a21] shadow-lg shadow-black/40",
+      cardLarge: "bg-[#e0a53f] text-[#171a21] shadow-md shadow-black/20",
       inputGlass: "bg-white/10 border border-[#4c5a6b] focus:border-[#e0a53f] text-[#e9e3d5] placeholder-[#e9e3d5]/40 outline-none transition-all",
       textMain: "text-[#e9e3d5]",
       textSub: "text-[#e9e3d5]/60",
@@ -175,7 +175,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#eef1f6]",
       cardSmall: "bg-[#c6cfe4]/40 backdrop-blur-sm border border-[#c6cfe4] shadow-sm",
-      cardLarge: "bg-[#2f4bb3] text-white shadow-lg shadow-[#2f4bb3]/30",
+      cardLarge: "bg-[#2f4bb3] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#c6cfe4] focus:border-[#2f4bb3] text-[#1c2333] placeholder-[#1c2333]/40 outline-none transition-all",
       textMain: "text-[#1c2333]",
       textSub: "text-[#1c2333]/60",
@@ -195,7 +195,7 @@ export const PALETTES = {
     ui: {
       bgMain: "bg-[#f4efe6]",
       cardSmall: "bg-[#d8cbb0]/40 backdrop-blur-sm border border-[#d8cbb0] shadow-sm",
-      cardLarge: "bg-[#7a2e39] text-white shadow-lg shadow-[#7a2e39]/30",
+      cardLarge: "bg-[#7a2e39] text-white shadow-md shadow-black/5",
       inputGlass: "bg-white/70 border border-[#d8cbb0] focus:border-[#7a2e39] text-[#2b211f] placeholder-[#2b211f]/40 outline-none transition-all",
       textMain: "text-[#2b211f]",
       textSub: "text-[#2b211f]/60",
