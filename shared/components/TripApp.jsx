@@ -547,31 +547,37 @@ export const ExpenseView = ({ expenses, loading, onRefresh, onAddExpense, onDele
       </div>
       {viewMode === 'list' ? (
         <>
-          <button onClick={() => setShowFormModal(true)} className={`w-full ${ui.btnPrimary} py-4 rounded-2xl flex items-center justify-center gap-2 mb-4 text-sm uppercase tracking-widest`}><Plus size={18} /> 記一筆</button>
+          <button onClick={() => setShowFormModal(true)} className={`w-full ${ui.btnPrimary} py-4 rounded-2xl flex items-center justify-center gap-2 mb-5`}><Plus size={20} /> 記一筆</button>
           <div className="space-y-3">
             {expenses.map((item, idx) => (
-              <div key={idx} className={`${ui.cardSmall} rounded-[1.25rem] p-4 flex items-center justify-between gap-3 ${item.isPending ? 'opacity-70' : ''}`}>
-                <div className="min-w-0">
-                  <p className={`font-serif ${ui.textMain} text-lg leading-snug truncate`}>{item.desc.split('#')[0]}</p>
-                  <span className={`text-xs uppercase tracking-wider ${ui.textSub}`}>{item.author || 'N/A'}</span>
+              <div key={idx} className={`${ui.cardSmall} p-4 rounded-[1.5rem] flex items-center justify-between gap-3 ${item.isPending ? 'opacity-70' : ''}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-11 h-11 rounded-2xl flex-none flex items-center justify-center bg-white/60 ${ui.textMain}`}><CreditCard size={18} /></div>
+                  <div className="min-w-0">
+                    <p className={`font-serif ${ui.textMain} text-lg leading-snug truncate`}>{item.desc.split('#')[0]}</p>
+                    <span className={`inline-block text-xs font-bold ${ui.textSub} bg-white/50 px-2 py-0.5 rounded-md mt-1`}>{item.author || 'N/A'}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 flex-none">
-                  <p className={`font-mono tabular-nums ${ui.textMain}`}>{item.amount.toLocaleString()}</p>
-                  <button onClick={() => onDeleteExpense(item.id)} className={`p-1 ${ui.textSub} hover:opacity-100 opacity-45`}><Trash2 size={15} /></button>
+                <div className="flex flex-col items-end gap-1.5 flex-none">
+                  <p className={`font-serif text-lg ${ui.textMain} tabular-nums`}>{baseCurrency} {item.amount.toLocaleString()}</p>
+                  <button onClick={() => onDeleteExpense(item.id)} className={`p-1 rounded-lg ${ui.textSub} hover:opacity-100 opacity-50`}><Trash2 size={15} /></button>
                 </div>
               </div>
             ))}
           </div>
         </>
       ) : (
-        <div className={`${ui.cardSmall} rounded-[1.5rem] p-5 space-y-1`}>
+        <div className={`${ui.cardSmall} rounded-[1.75rem] p-6 space-y-5`}>
           {splitData.debts.map((p, i) => (
-            <div key={i} className={`flex items-center justify-between py-2.5 ${i < splitData.debts.length - 1 ? `border-b ${ui.border}` : ''}`}>
-              <div>
-                <p className={`text-base font-serif ${ui.textMain}`}>{p.name}</p>
-                <p className={`text-xs ${ui.textSub}`}>已墊付 {p.paid.toLocaleString()}</p>
+            <div key={i} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-none bg-white/60 ${ui.textMain}`}>{p.name}</div>
+                <div>
+                  <p className={`text-base font-serif ${ui.textMain}`}>{p.name}</p>
+                  <p className={`text-xs ${ui.textSub}`}>已墊付 {p.paid.toLocaleString()}</p>
+                </div>
               </div>
-              <div className="text-base font-mono tabular-nums" style={{ color: p.net >= 0 ? theme.large : theme.text }}>{p.net >= 0 ? `+${Math.round(p.net).toLocaleString()}` : `-${Math.round(Math.abs(p.net)).toLocaleString()}`}</div>
+              <div className="text-lg font-serif tabular-nums" style={{ color: p.net >= 0 ? theme.large : theme.text }}>{p.net >= 0 ? `+${Math.round(p.net).toLocaleString()}` : `-${Math.round(Math.abs(p.net)).toLocaleString()}`}</div>
             </div>
           ))}
         </div>
@@ -631,19 +637,19 @@ export const RemindersView = () => {
   const deleteItem = (id) => setChecklist(prev => prev.filter(item => item.id !== id));
 
   return (
-    <div className="pb-32 pt-2 space-y-10">
-      <div>
-        <h3 className={`font-serif ${ui.textMain} text-2xl mb-4 flex items-center gap-2`}><CheckSquare size={20} style={{ color: theme.large }} /> 行前檢查</h3>
-        <form onSubmit={addItem} className="flex gap-2 mb-4"><input type="text" value={newItemText} onChange={(e) => setNewItemText(e.target.value)} placeholder="Add item..." className={`flex-1 ${ui.inputGlass} p-3 rounded-xl outline-none text-sm`} /><button type="submit" className={`${ui.btnPrimary} px-4 rounded-xl`}><Plus size={18} /></button></form>
-        <div className={`border-t ${ui.border}`}>{checklist.map((item) => (<div key={item.id} className={`flex items-center justify-between py-3 border-b ${ui.border} group`}><label className="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" className="w-5 h-5 rounded-md" style={{ accentColor: theme.large }} checked={item.checked} onChange={() => toggleItem(item.id)} /><span className={`text-base ${item.checked ? `line-through ${ui.textSub} opacity-50` : ui.textMain}`}>{item.text}</span></label><button onClick={() => deleteItem(item.id)} className={`${ui.textSub} hover:opacity-100 opacity-45 p-1`}><Trash2 size={16} /></button></div>))}</div>
+    <div className="pb-32 pt-2 space-y-6">
+      <div className={`${ui.cardSmall} p-6 rounded-[1.75rem]`}>
+        <h3 className={`font-serif ${ui.textMain} text-2xl mb-5 flex items-center gap-3`}><CheckSquare size={22} style={{ color: theme.large }} /> 行前檢查</h3>
+        <form onSubmit={addItem} className="flex gap-3 mb-5"><input type="text" value={newItemText} onChange={(e) => setNewItemText(e.target.value)} placeholder="Add item..." className={`flex-1 ${ui.inputGlass} p-4 rounded-2xl outline-none text-sm font-bold`} /><button type="submit" className={`${ui.btnPrimary} p-4 rounded-2xl`}><Plus size={20} /></button></form>
+        <div className="space-y-3">{checklist.map((item) => (<div key={item.id} className="flex items-center justify-between p-4 bg-white/50 rounded-2xl group"><label className="flex items-center gap-4 cursor-pointer flex-1"><input type="checkbox" className="w-6 h-6 rounded-md" style={{ accentColor: theme.large }} checked={item.checked} onChange={() => toggleItem(item.id)} /><span className={`font-serif text-lg ${item.checked ? `line-through ${ui.textSub} opacity-50` : ui.textMain}`}>{item.text}</span></label><button onClick={() => deleteItem(item.id)} className={`${ui.textSub} hover:opacity-100 opacity-50 p-1`}><Trash2 size={18} /></button></div>))}</div>
       </div>
       {tips && tips.length > 0 && (
-        <div>
-          <h3 className={`font-serif ${ui.textMain} text-2xl mb-4 flex items-center gap-2`}><Lightbulb size={20} style={{ color: theme.large }} /> 小貼士</h3>
-          <div className={`border-t ${ui.border}`}>
+        <div className={`${ui.cardSmall} p-6 rounded-[1.75rem]`}>
+          <h3 className={`font-serif ${ui.textMain} text-2xl mb-5 flex items-center gap-3`}><Lightbulb size={22} style={{ color: theme.large }} /> 小貼士</h3>
+          <div className="space-y-3">
             {tips.map((t, i) => (
-              <div key={i} className={`flex gap-4 py-4 border-b ${ui.border}`}>
-                <div className="pt-1" style={{ color: theme.large }}>{ICON_MAP[t.icon] || <Lightbulb size={18} />}</div>
+              <div key={i} className="flex gap-4 p-4 bg-white/50 rounded-2xl">
+                <div className={`w-11 h-11 rounded-2xl flex-none flex items-center justify-center bg-white/60 ${ui.textMain}`}>{ICON_MAP[t.icon] || <Lightbulb size={18} />}</div>
                 <div><h4 className={`font-serif ${ui.textMain} mb-0.5 text-lg`}>{t.title}</h4><p className={`text-sm ${ui.textSub} leading-relaxed`}>{t.desc}</p></div>
               </div>
             ))}
@@ -768,7 +774,7 @@ export default function TripApp({ config }) {
       ) : (
         <div className={`min-h-screen ${config.ui.bgMain} font-sans ${config.ui.textMain} flex justify-center`}>
           <div className={`w-full max-w-md min-h-screen relative shadow-2xl ${config.ui.bgMain}`}>
-            <header className="px-6 pt-12 pb-5">
+            <header className="px-6 pt-9 pb-4">
               <div className="text-[10px] uppercase tracking-[0.3em] mb-1" style={{ color: theme.large }}>{config.title.sub}{config.title.year ? ` · ${config.title.year}` : ''}</div>
               <h1 className={`text-4xl font-serif tracking-tight ${config.ui.textMain}`}>{config.title.main}</h1>
               <div className="flex items-center gap-3 mt-2">
@@ -783,18 +789,18 @@ export default function TripApp({ config }) {
               {activeTab === 'reminders' && <RemindersView />}
               {activeTab === 'others' && <OthersView />}
             </main>
-            <nav className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md ${config.ui.bgMain} border-t ${config.ui.border} flex justify-around items-center z-50 pb-safe`}>
+            <nav className={`fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[21rem] bg-white/95 backdrop-blur-xl border ${config.ui.border} shadow-xl shadow-black/5 rounded-[1.75rem] py-2 px-3 flex justify-around items-center z-50`}>
               {tabs.map((tab) => {
                 const on = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex flex-col items-center justify-center flex-1 py-4 relative transition-colors ${on ? '' : config.ui.textSub}`}
+                    className={`flex items-center justify-center w-14 h-14 rounded-2xl transition-all relative ${on ? '' : `${config.ui.textSub} hover:opacity-100`}`}
                     style={{ color: on ? theme.large : '' }}
                   >
-                    {on && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5" style={{ backgroundColor: theme.large }}></div>}
-                    {React.cloneElement(tab.icon, { size: 22, strokeWidth: 2 })}
+                    {on && <div className="absolute inset-0 rounded-2xl -z-10 scale-90" style={{ backgroundColor: `${theme.large}26` }}></div>}
+                    {React.cloneElement(tab.icon, { size: 25, strokeWidth: 2.4, className: on ? 'scale-105' : '' })}
                   </button>
                 );
               })}
