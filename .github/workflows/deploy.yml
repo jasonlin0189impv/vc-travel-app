@@ -35,6 +35,7 @@ jobs:
         trip:
           - seoul-trip-2025
           - honeymoon-trip-2026
+          - tokyo-trip-2026
     steps:
       - uses: actions/checkout@v4
         with:
