@@ -50,7 +50,7 @@ describe('LoginView', () => {
       </ConfigContext.Provider>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('••••'), { target: { value: '0000' } });
+    fireEvent.change(screen.getByPlaceholderText('輸入通關密語'), { target: { value: '0000' } });
     fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }).closest('form'));
 
     expect(await screen.findByText(/密碼錯誤/i)).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('LoginView', () => {
       </ConfigContext.Provider>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('••••'), { target: { value: '2026' } });
+    fireEvent.change(screen.getByPlaceholderText('輸入通關密語'), { target: { value: '2026' } });
     fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }).closest('form'));
 
     await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('2026'));
@@ -151,7 +151,7 @@ describe('Itinerary & Weather Switching', () => {
 
     const btn = screen.getByText('1/12');
     fireEvent.click(btn);
-    expect(btn.closest('button').className).toContain('scale-105');
+    expect(btn.closest('button').getAttribute('aria-current')).toBe('true');
   });
 });
 

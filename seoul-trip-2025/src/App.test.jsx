@@ -62,7 +62,7 @@ describe('LoginView', () => {
       </ConfigContext.Provider>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('••••'), { target: { value: '0000' } });
+    fireEvent.change(screen.getByPlaceholderText('輸入通關密語'), { target: { value: '0000' } });
     fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }).closest('form'));
 
     expect(await screen.findByText(/密碼錯誤/i)).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('LoginView', () => {
       </ConfigContext.Provider>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('••••'), { target: { value: '2025' } });
+    fireEvent.change(screen.getByPlaceholderText('輸入通關密語'), { target: { value: '2025' } });
     fireEvent.submit(screen.getByRole('button', { name: /進入旅程/i }).closest('form'));
 
     await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('2025'));
