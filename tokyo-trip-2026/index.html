@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8" />
+  <!-- 禁止縮放，讓操作手感更像 Native App -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>信屏東京之旅</title>
+
+  <!-- ========================================== -->
+  <!-- 🍎 iPhone / iPad 主畫面設定 (關鍵區域) -->
+  <!-- ========================================== -->
+
+  <!-- 1. 設定 App 圖示 -->
+  <!-- 換圖：把新圖丟進 public/ 並改下面兩行的檔名即可 -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/tokyo-trip.png">
+  <link rel="icon" type="image/png" href="/tokyo-trip.png" />
+
+  <!-- 2. 開啟「Web App 模式」 (隱藏 Safari 上下工具列) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <!-- 3. 設定狀態列顏色 (可以選 default, black, black-translucent) -->
+  <!-- black-translucent 會讓內容延伸到瀏海後面，看起來很高級 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- 4. 設定 App 在主畫面顯示的名稱 (如果不設定會預設抓 title) -->
+  <meta name="apple-mobile-web-app-title" content="東京之旅">
+
+  <!-- ========================================== -->
+
+  <meta name="theme-color" content="#eef0e2">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

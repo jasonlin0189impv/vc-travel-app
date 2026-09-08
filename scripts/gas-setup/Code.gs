@@ -14,7 +14,8 @@
  *         （或在編輯器跑一次 setPin("123456")，值會寫進屬性，不會留在程式碼裡）
  *
  * 部署：部署 → 新增部署 → Web App（執行身分：我；存取：任何人）
- *       → /exec 網址填到 <trip>-YYYY/.env 的 VITE_<TRIP>_API_URL（非敏感，已被 PIN 保護）
+ *       → /exec 網址直接寫進 <trip>-YYYY/src/App.jsx 的 config.api.url
+ *         （非敏感，已被伺服器端 PIN 保護；不需要 .env、不需要 GitHub secret）
  *
  * 已知父資料夾 ID（旅遊/）：蜜月 1UmSHuESG68cHbzCRFDeN0u16o0EmTk_-
  *   韓國 1znr24DKM5yyAEpC09D_ABG3q13ft15E7 / 日本 1NzIFIsDzomgIFMCffxaoYSuloXrHkO74
@@ -46,7 +47,7 @@ function setupTrip() {
   moveToFolder_(ss.getId(), folder);
   PropertiesService.getScriptProperties().setProperty(PROP_SPREADSHEET_ID, ss.getId());
   Logger.log('建置完成。資料夾 ' + folder.getUrl() + '\n試算表 ' + ss.getUrl()
-    + '\n接著：設 AUTH_PIN、部署 Web App，/exec 填 VITE_<TRIP>_API_URL');
+    + '\n接著：設 AUTH_PIN、部署 Web App，/exec 寫進 src/App.jsx 的 config.api.url');
 }
 
 // ============ B. 擴充現有旅程（沿用現有行程試算表）============

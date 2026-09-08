@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局樣式設定，優化手機體驗 */
+body {
+  /* 基底色 = matcha 色庫的 base (#eef0e2 淡抹茶) */
+  background-color: #eef0e2; 
+  
+  /* 防止下拉重整 (iOS Safari 彈性效果露出的底色) */
+  overscroll-behavior-y: none; 
+  
+  /* 移除點擊時的藍色高亮框 */
+  -webkit-tap-highlight-color: transparent;
+}
