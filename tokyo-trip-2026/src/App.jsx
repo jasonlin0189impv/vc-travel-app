@@ -6,7 +6,7 @@ const config = {
   api: {
     // 單一 web app（行程 + 記帳）。網址非敏感：PIN 由伺服器端驗證，沒 PIN 打它也拿不到資料。
     // 直接寫在 config → 不需要 GitHub secret。
-    url: "TODO: paste /exec at deploy",
+    url: "https://script.google.com/macros/s/AKfycbwUB4HXFKBelAyAX9rwJhngvFnA1d2IKEMHssAP9lqhJqR0klnF-FymSSRwiRja89BV-Q/exec",
   },
   members: ['信', '屏'],
   exchangeRates: { 'JPY': 0.2 },
