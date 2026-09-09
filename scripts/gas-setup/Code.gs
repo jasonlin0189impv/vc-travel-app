@@ -117,9 +117,7 @@ function migrateExpenses(oldSpreadsheetId, oldSheetName) {
 //   auth   / login                                  -> 驗 PIN，對回 {status:'success'}
 //   itinerary/expense: read / create / update / delete
 function doPost(e) {
-  var lock = LockService.getScriptLock();
   try {
-    lock.waitLock(15000); // ponytail: 全域鎖，人少夠用
     var req = JSON.parse(e.postData.contents);
 
     // ── 伺服器端 PIN 驗證：錯就一律擋掉，不回任何資料 ──
@@ -132,20 +130,29 @@ function doPost(e) {
     var tab = TABS[req.type];
     if (!tab) return json_({ status: 'error', message: 'unknown type: ' + req.type });
     var sheet = getSheet_(tab.name);
-    var out;
-    switch (req.action) {
-      case 'read':   out = { status: 'success', data: readRows_(sheet, tab.headers) }; break;
-      case 'create': createRow_(sheet, tab, req); out = { status: 'success' }; break;
-      case 'update': updateRow_(sheet, tab, req); out = { status: 'success' }; break;
-      case 'delete': deleteRow_(sheet, String(req.id)); out = { status: 'success' }; break;
-      default:       out = { status: 'error', message: 'unknown action: ' + req.action };
+
+    // read 不改資料 → 不搶鎖，才不會被寫入序列化拖慢（read 佔了大多數請求）
+    if (req.action === 'read') return json_({ status: 'success', data: readRows_(sheet, tab.headers) });
+
+    // 只有寫入需要全域鎖序列化
+    // ponytail: 全域鎖，人少夠用
+    var lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      var out;
+      switch (req.action) {
+        case 'create': createRow_(sheet, tab, req); out = { status: 'success' }; break;
+        case 'update': updateRow_(sheet, tab, req); out = { status: 'success' }; break;
+        case 'delete': deleteRow_(sheet, String(req.id)); out = { status: 'success' }; break;
+        default:       out = { status: 'error', message: 'unknown action: ' + req.action };
+      }
+      SpreadsheetApp.flush();
+      return json_(out);
+    } finally {
+      lock.releaseLock();
     }
-    SpreadsheetApp.flush();
-    return json_(out);
   } catch (err) {
     return json_({ status: 'error', message: String(err) });
-  } finally {
-    lock.releaseLock();
   }
 }
 
@@ -211,7 +218,7 @@ function moveToFolder_(fileId, folder) {
 }
 
 // ============ 自我檢查（設好 PIN/ID 後可在編輯器跑）============
-function test_() {
+function runTest() {
   ['itinerary', 'expense'].forEach(function (type) {
     var tab = TABS[type], sheet = getSheet_(tab.name);
     var before = readRows_(sheet, tab.headers).length;

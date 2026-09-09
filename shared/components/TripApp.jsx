@@ -341,7 +341,8 @@ export const ItineraryView = () => {
     const currentId = selectedItem.id ? String(selectedItem.id) : null;
     const action = currentId && !currentId.startsWith('new') ? 'update' : 'create';
     const payload = { ...editForm, id: action === 'update' ? currentId : undefined, day: activeDay };
-    const res = await apiRequest(action, payload);
+    // 25s > server 等鎖 20s：慢但會成功的寫入不會被 client abort 誤報失敗
+    const res = await apiRequest(action, payload, 25000);
     if (res.status === 'success') { await fetchItinerary(true); setSelectedItem(null); setIsEditing(false); } else { alert("儲存失敗: " + res.message); }
     setIsSaving(false);
   };
@@ -351,7 +352,7 @@ export const ItineraryView = () => {
     setIsSaving(true);
     const currentId = deletingItem.id ? String(deletingItem.id) : null;
     if (currentId && !currentId.startsWith('new')) {
-      const res = await apiRequest('delete', { id: currentId });
+      const res = await apiRequest('delete', { id: currentId }, 25000);
       if (res.status === 'success') { await fetchItinerary(true); } else { alert("刪除失敗"); }
     } else {
       const newData = { ...itineraryData };
@@ -753,12 +754,12 @@ export default function TripApp({ config }) {
 
   const handleAddExpense = async (data) => {
     const res = await apiCall(config.api.url, pin, 'expense', 'create',
-      { item: data.item, amount: data.amount, category: data.category, payer: data.payer }, logout);
+      { item: data.item, amount: data.amount, category: data.category, payer: data.payer }, logout, 25000);
     if (res.status === 'success') fetchExpenses(); else alert('記帳失敗: ' + (res.message || ''));
   };
 
   const handleDeleteExpense = async (id) => {
-    const res = await apiCall(config.api.url, pin, 'expense', 'delete', { id }, logout);
+    const res = await apiCall(config.api.url, pin, 'expense', 'delete', { id }, logout, 25000);
     if (res.status === 'success') fetchExpenses(); else alert('刪除失敗: ' + (res.message || ''));
   };
 
